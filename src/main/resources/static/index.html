@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Java 作业智能批改系统</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+:root {
+    --primary: #4f46e5; --primary-light: #eef2ff;
+    --bg: #f1f5f9; --card: #ffffff; --border: #e2e8f0;
+    --text: #1e293b; --muted: #64748b;
+    --red: #ef4444; --orange: #f59e0b; --green: #10b981; --blue: #3b82f6;
+    --font-mono: 'Cascadia Code','JetBrains Mono','Fira Code','Consolas','Courier New',monospace;
+    --font-sans: -apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+    --radius: 10px; --shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.6; }
+.container { display: flex; min-height: 100vh; }
+
+/* Sidebar */
+.sidebar {
+    width: 300px; min-width: 300px; background: var(--card);
+    border-right: 1px solid var(--border); padding: 24px;
+    display: flex; flex-direction: column; gap: 20px;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+}
+.sidebar h1 { font-size: 1.3rem; color: var(--primary); }
+.sidebar h2 { font-size: 1rem; margin-bottom: 6px; }
+.btn { padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; font-size: .88rem; font-weight: 500; transition: all .2s; }
+.btn-primary { background: var(--primary); color: #fff; width: 100%; font-size: 1rem; padding: 14px; }
+.btn-primary:hover { filter: brightness(1.1); }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+.btn-outline { background: var(--card); border: 1px solid var(--border); width: 100%; }
+.btn-outline:hover { background: var(--bg); }
+.stats-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px; font-size: .85rem; }
+.stats-box strong { color: var(--green); }
+.empty-hint { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px; font-size: .82rem; color: #3b82f6; line-height: 1.7; }
+.file-list { font-size: .8rem; color: var(--muted); max-height: 120px; overflow-y: auto; }
+.file-list div { padding: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: .9rem; background: var(--card); }
+.toggle-row { display: flex; align-items: center; gap: 8px; font-size: .85rem; cursor: pointer; }
+
+/* Main */
+.main { flex: 1; padding: 24px 32px; max-width: 1100px; }
+
+/* Tabs */
+.tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
+.tab {
+    padding: 10px 20px; border: none; background: none;
+    font-size: .95rem; font-weight: 500; color: var(--muted);
+    cursor: pointer; border-bottom: 2px solid transparent;
+    margin-bottom: -2px; transition: all .2s;
+}
+.tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.tab:hover { color: var(--primary); }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Upload area */
+.upload-area {
+    border: 2px dashed var(--border); border-radius: var(--radius);
+    padding: 40px; text-align: center; background: var(--card);
+    transition: all .2s; cursor: pointer;
+}
+.upload-area:hover, .upload-area.dragover {
+    border-color: var(--primary); background: var(--primary-light);
+}
+.upload-area input { display: none; }
+
+/* Textarea */
+textarea {
+    width: 100%; border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px; font-size: .88rem; font-family: var(--font-mono);
+    resize: vertical; tab-size: 4; line-height: 1.5;
+}
+textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+
+/* Stream raw text */
+.stream-raw {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px 24px; margin-top: 16px;
+    white-space: pre-wrap; word-wrap: break-word;
+    font-family: var(--font-sans); font-size: .9rem; line-height: 1.8;
+    color: #334155; min-height: 120px; max-height: 70vh; overflow-y: auto;
+}
+.stream-raw::after { content: '▊'; animation: blink 1s infinite; color: var(--primary); }
+@keyframes blink { 0%,50% { opacity: 1; } 51%,100% { opacity: 0; } }
+
+/* Score cards */
+.score-overview { margin-bottom: 20px; }
+.total-card {
+    background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+    color: #fff; border-radius: var(--radius); padding: 20px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px; box-shadow: var(--shadow);
+}
+.total-card .total-label { font-size: .85rem; opacity: .85; }
+.total-card .total-score { font-size: 2.5rem; font-weight: 700; }
+.total-card .total-max { font-size: 1rem; opacity: .7; }
+.score-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.score-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow);
+}
+.score-card .dim-label { font-size: .82rem; color: var(--muted); margin-bottom: 4px; }
+.score-card .dim-score { font-size: 1.7rem; font-weight: 700; margin-bottom: 6px; display: flex; align-items: baseline; gap: 4px; }
+.score-card .dim-score .max { font-size: .8rem; color: var(--muted); font-weight: 400; }
+.score-card .dim-comment { font-size: .78rem; color: var(--muted); margin-bottom: 8px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pbar { height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; }
+.pbar-fill { height: 100%; border-radius: 3px; transition: width .5s ease; }
+.pbar-fill.low { background: var(--red); }
+.pbar-fill.mid { background: var(--orange); }
+.pbar-fill.good { background: var(--blue); }
+.pbar-fill.high { background: var(--green); }
+.score-card { border-left: 4px solid var(--border); }
+.score-card.low { border-left-color: var(--red); }
+.score-card.mid { border-left-color: var(--orange); }
+.score-card.good { border-left-color: var(--blue); }
+.score-card.high { border-left-color: var(--green); }
+
+/* Question card (homework) */
+.q-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); margin-bottom: 16px;
+    box-shadow: var(--shadow); overflow: hidden;
+}
+.q-header {
+    padding: 16px 20px; display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; background: #f8fafc; border-bottom: 1px solid transparent;
+}
+.q-header:hover { background: #f1f5f9; }
+.q-header.open { border-bottom-color: var(--border); }
+.q-title { font-weight: 600; font-size: .95rem; }
+.q-score { font-size: 1.4rem; font-weight: 700; color: var(--primary); }
+.q-body { padding: 20px; display: none; }
+.q-body.open { display: block; }
+
+/* Markdown */
+.md-content { line-height: 1.8; }
+.md-content h2 { font-size: 1.15rem; color: var(--text); margin: 22px 0 10px; padding-bottom: 6px; border-bottom: 2px solid var(--primary); }
+.md-content h3 { font-size: 1.05rem; color: var(--text); margin: 18px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+.md-content h4 { font-size: .95rem; color: var(--primary); margin: 12px 0 4px; }
+.md-content p { margin-bottom: 8px; }
+.md-content strong { font-weight: 600; }
+.md-content ul, .md-content ol { margin: 6px 0 10px 22px; }
+.md-content li { margin-bottom: 3px; }
+.md-content hr { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+.md-content code {
+    background: #f1f5f9; padding: 1px 6px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: .85em; color: #be185d;
+}
+.md-content pre {
+    background: #1e293b; color: #e2e8f0; border-radius: 8px;
+    padding: 16px; margin: 12px 0; overflow-x: auto;
+    font-family: var(--font-mono); font-size: .85rem; line-height: 1.6;
+}
+.md-content pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+.md-content table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: .88rem; }
+.md-content th, .md-content td { border: 1px solid var(--border); padding: 8px 14px; text-align: left; }
+.md-content th { background: #f8fafc; font-weight: 600; color: var(--muted); font-size: .8rem; }
+.md-content blockquote {
+    border-left: 4px solid var(--primary); background: var(--primary-light);
+    margin: 12px 0; padding: 8px 16px; border-radius: 0 8px 8px 0; color: #4338ca;
+}
+.md-content a { color: var(--primary); text-decoration: underline; }
+
+/* Sources */
+.sources-box {
+    background: #fffbeb; border: 1px solid #fde68a;
+    border-radius: 8px; padding: 12px; margin-top: 12px;
+    font-size: .8rem; max-height: 300px; overflow-y: auto;
+}
+.source-item { padding: 8px 0; border-bottom: 1px solid #fde68a; }
+.source-item:last-child { border-bottom: none; }
+
+.badge { display: inline-block; padding: 1px 7px; border-radius: 12px; font-size: .75rem; font-weight: 600; margin: 0 2px; }
+.badge-red { background: #fef2f2; color: var(--red); border: 1px solid #fecaca; }
+.badge-orange { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+
+.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #e2e8f0; border-top-color: var(--primary); border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Responsive */
+@media (max-width: 1024px) { .score-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 768px) {
+    .container { flex-direction: column; }
+    .sidebar { width: 100%; min-width: 0; position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    .main { padding: 16px; }
+    .score-grid { grid-template-columns: 1fr; }
+    .total-card { flex-direction: column; text-align: center; gap: 8px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<aside class="sidebar">
+    <h1>&#x1F4BB; Java 作业智能批改</h1>
+    <p style="font-size:.85rem;color:var(--muted)">基于 RAG 的自动作业批改与代码评估</p>
+
+    <div>
+        <h2>&#x1F4DA; 知识库管理</h2>
+        <button class="btn btn-outline" onclick="syncKnowledge()">&#x1F504; 同步知识库</button>
+        <div id="statsBox" class="stats-box" style="margin-top:12px;display:none;">
+            <div>已索引: <strong id="chunkCount">-</strong> 个片段</div>
+            <div>文件数: <strong id="fileCount">-</strong></div>
+        </div>
+        <div id="emptyHint" class="empty-hint" style="margin-top:8px;display:none;">
+            知识库为空。将评分标准文档放入 <code>data/knowledge_base/</code> 后点击同步。
+        </div>
+        <div id="fileList" class="file-list" style="margin-top:8px;"></div>
+    </div>
+
+    <div>
+        <h2>&#x1F4CB; 评估配置</h2>
+        <label style="font-size:.85rem;color:var(--muted)">评估类型</label>
+        <select id="category">
+            <option value="">通用评估</option>
+            <option value="code-style">代码规范</option>
+            <option value="algorithm">算法与数据结构</option>
+            <option value="design">设计模式与架构</option>
+            <option value="performance">性能优化</option>
+            <option value="testing">测试代码</option>
+            <option value="security">安全审查</option>
+        </select>
+    </div>
+
+    <div>
+        <label class="toggle-row">
+            <input type="checkbox" id="showContext" onchange="toggleContext()">
+            显示检索上下文
+        </label>
+    </div>
+</aside>
+
+<main class="main">
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('single')">单代码评估</button>
+        <button class="tab" onclick="switchTab('homework')">作业文档批改</button>
+    </div>
+
+    <!-- ========== 单代码评估 ========== -->
+    <div id="tab-single" class="tab-content active">
+        <h2>&#x1F4C4; 代码提交</h2>
+        <textarea id="codeInput" rows="16" placeholder="在此粘贴要评估的 Java 代码..."></textarea>
+        <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:.8rem;color:var(--muted)">或上传 .java 文件：</span>
+            <input type="file" id="fileUpload" accept=".java,.txt" onchange="handleFileUpload(event)" style="font-size:.8rem;">
+        </div>
+        <button class="btn btn-primary" id="scoreBtn" onclick="startEvaluation()" style="margin-top:16px;">
+            &#x1F50D; 开始评估
+        </button>
+
+        <div id="streamArea" style="display:none;">
+            <h3 style="margin-top:16px;">&#x1F4CA; AI 评估报告</h3>
+            <div class="stream-raw" id="streamRaw"></div>
+        </div>
+
+        <div id="finalArea" style="display:none;">
+            <div id="scoreOverview" class="score-overview"></div>
+            <div id="mdContent" class="md-content"></div>
+        </div>
+
+        <div id="sourcesArea" style="display:none;">
+            <h3 style="margin-top:20px;">&#x1F50D; 检索到的上下文（RAG 源文档）</h3>
+            <div class="sources-box" id="sourcesContent"></div>
+        </div>
+    </div>
+
+    <!-- ========== 作业文档批改 ========== -->
+    <div id="tab-homework" class="tab-content">
+        <h2>&#x1F4C4; 上传作业文档</h2>
+        <div class="upload-area" id="uploadArea" onclick="document.getElementById('homeworkFile').click()">
+            <div style="font-size:2.5rem;margin-bottom:8px;">&#x1F4E4;</div>
+            <div style="font-weight:600;margin-bottom:4px;">点击或拖拽上传 Word 文档</div>
+            <div style="font-size:.85rem;color:var(--muted)">支持 .docx 格式，文档中可包含多道编程题</div>
+            <input type="file" id="homeworkFile" accept=".docx" onchange="handleHomeworkFile(event)">
+        </div>
+        <div id="fileNameDisplay" style="margin-top:12px;font-size:.9rem;color:var(--muted);display:none;">
+            已选择：<strong id="selectedFileName"></strong>
+        </div>
+        <button class="btn btn-primary" id="hwBtn" onclick="startHomeworkGrading()" style="margin-top:16px;" disabled>
+            &#x1F50D; 开始批改
+        </button>
+
+        <!-- 进度 -->
+        <div id="hwProgress" style="margin-top:16px;display:none;">
+            <span class="spinner"></span> 正在解析文档并逐题批改...
+        </div>
+
+        <!-- 汇总 -->
+        <div id="hwSummary" style="display:none;margin-top:20px;"></div>
+
+        <!-- 题目结果列表 -->
+        <div id="hwResults" style="margin-top:16px;"></div>
+
+        <!-- RAG 来源 -->
+        <div id="hwSourcesArea" style="display:none;">
+            <h3 style="margin-top:20px;">&#x1F50D; 检索到的上下文（RAG 源文档）</h3>
+            <div class="sources-box" id="hwSourcesContent"></div>
+        </div>
+    </div>
+</main>
+</div>
+
+<script>
+// ================================================================
+// Tab 切换
+// ================================================================
+function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ================================================================
+// Markdown -> HTML
+// ================================================================
+function renderMarkdown(text) {
+    if (!text || !text.trim()) return '';
+    return marked.parse(text);
+}
+
+// ================================================================
+// 单代码评估：Score extraction
+// ================================================================
+const DIMS = [
+    { key:'style', label:'代码规范', max:25, re:/代码规范|命名|格式|style/i },
+    { key:'logic', label:'逻辑正确性', max:25, re:/逻辑正确|业务逻辑|边界|logic/i },
+    { key:'perf',  label:'性能与效率', max:25, re:/性能|效率|算法复杂|资源|perform/i },
+    { key:'maint', label:'可维护性', max:25, re:/可维护|设计模式|解耦|测试|maintain/i },
+];
+
+function parseScores(text) {
+    const sc = {}, cm = {};
+    for (const line of text.split('\n')) {
+        const cells = line.split('|').map(c => c.trim()).filter(Boolean);
+        if (cells.length < 3) continue;
+        const score = parseInt(cells[2]);
+        const max = parseInt(cells[1]);
+        if (isNaN(score)) continue;
+        for (const d of DIMS) {
+            if (d.re.test(cells[0])) { sc[d.key] = score; cm[d.key] = cells[3] || ''; break; }
+        }
+    }
+    return { scores: sc, comments: cm };
+}
+
+function buildScoreCards(text) {
+    const { scores, comments } = parseScores(text);
+    if (!Object.keys(scores).length) return '';
+    const total = Object.values(scores).reduce((a,b) => a + b, 0);
+    const pct = total / 100 * 100;
+    const cl = pct >= 80 ? 'high' : pct >= 60 ? 'good' : pct >= 40 ? 'mid' : 'low';
+    let h = `
+    <div class="score-overview">
+        <div class="total-card">
+            <div><div class="total-label">综合评分</div><div style="font-size:.85rem;opacity:.8">满分 100 分</div></div>
+            <div style="text-align:right"><div class="total-score">${total}</div><div class="total-max">/ 100</div></div>
+        </div>
+        <div class="score-grid">`;
+    for (const d of DIMS) {
+        const s = scores[d.key];
+        if (s === undefined) continue;
+        const dpct = s / d.max * 100;
+        const dcl = dpct >= 80 ? 'high' : dpct >= 60 ? 'good' : dpct >= 40 ? 'mid' : 'low';
+        h += `
+        <div class="score-card ${dcl}">
+            <div class="dim-label">${d.label}（满分 ${d.max}）</div>
+            <div class="dim-score">${s}<span class="max">/ ${d.max}</span></div>
+            ${comments[d.key] ? `<div class="dim-comment">${comments[d.key]}</div>` : ''}
+            <div class="pbar"><div class="pbar-fill ${dcl}" style="width:${dpct}%"></div></div>
+        </div>`;
+    }
+    h += '</div></div>';
+    return h;
+}
+
+function injectBadges(html) {
+    html = html.replace(/\b(SQL\s*注入|XSS|CSRF|安全漏洞|内存泄漏|死锁|数据丢失|性能灾难|严重违标)\b/g,
+        '<span class="badge badge-red">$1</span>');
+    html = html.replace(/\b(建议优化|建议修改|需要改进|考虑重构|存在风险)\b/g,
+        '<span class="badge badge-orange">$1</span>');
+    return html;
+}
+
+// ================================================================
+// 单代码评估流程
+// ================================================================
+let fullText = '';
+
+function startEvaluation() {
+    const code = document.getElementById('codeInput').value.trim();
+    if (!code) { alert('请先输入或上传 Java 代码'); return; }
+
+    const btn = document.getElementById('scoreBtn');
+    const streamArea = document.getElementById('streamArea');
+    const streamRaw = document.getElementById('streamRaw');
+    const finalArea = document.getElementById('finalArea');
+    const scoreOverview = document.getElementById('scoreOverview');
+    const mdContent = document.getElementById('mdContent');
+    const sourcesEl = document.getElementById('sourcesContent');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> AI 正在分析...';
+    streamArea.style.display = 'block';
+    streamRaw.textContent = '';
+    finalArea.style.display = 'none';
+    scoreOverview.innerHTML = '';
+    mdContent.innerHTML = '';
+    sourcesEl.innerHTML = '';
+    fullText = '';
+
+    fetch('/api/score/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: code, category: document.getElementById('category').value }),
+    }).then(response => {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        function pump() {
+            reader.read().then(({ done, value }) => {
+                if (done) {
+                    btn.disabled = false;
+                    btn.innerHTML = '&#x1F50D; 开始评估';
+                    streamArea.style.display = 'none';
+                    finalArea.style.display = 'block';
+                    let body = fullText.replace(/###\s*二[、,]\s*分维度评分[\s\S]*?(?=\n###\s|$)/, '');
+                    scoreOverview.innerHTML = buildScoreCards(fullText);
+                    mdContent.innerHTML = injectBadges(renderMarkdown(body));
+                    return;
+                }
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                let currentEvent = 'message';
+                let dataLines = [];
+
+                function flushEvent() {
+                    if (dataLines.length === 0) return;
+                    const eventData = dataLines.join('\n');
+                    dataLines = [];
+                    if (currentEvent === 'sources') {
+                        try {
+                            const s = JSON.parse(eventData);
+                            sourcesEl.innerHTML = s.map(x =>
+                                `<div class="source-item"><strong>${x.type==='standard'?'📋 评估标准':'📝 参考范例'}</strong> | ${x.source}<br><span style="color:#64748b">${x.text}</span></div>`
+                            ).join('');
+                            if (document.getElementById('showContext').checked)
+                                document.getElementById('sourcesArea').style.display = 'block';
+                        } catch(e) {}
+                    } else if (currentEvent !== 'done') {
+                        fullText += eventData;
+                    }
+                }
+
+                for (const line of lines) {
+                    if (line === '') { flushEvent(); currentEvent = 'message'; continue; }
+                    if (line.startsWith('event: ')) { currentEvent = line.slice(7).trim(); continue; }
+                    if (line.startsWith('data: ')) { dataLines.push(line.slice(6)); continue; }
+                }
+                if (fullText) { streamRaw.textContent = fullText; streamRaw.scrollTop = streamRaw.scrollHeight; }
+                pump();
+            });
+        }
+        pump();
+    }).catch(err => {
+        streamRaw.textContent = '评估失败: ' + err.message;
+        btn.disabled = false;
+        btn.innerHTML = '&#x1F50D; 开始评估';
+    });
+}
+
+// ================================================================
+// 作业文档批改
+// ================================================================
+let selectedHomeworkFile = null;
+
+function handleHomeworkFile(e) {
+    const f = e.target.files[0];
+    if (!f) return;
+    selectedHomeworkFile = f;
+    document.getElementById('selectedFileName').textContent = f.name;
+    document.getElementById('fileNameDisplay').style.display = 'block';
+    document.getElementById('hwBtn').disabled = false;
+}
+
+// 拖拽上传
+const uploadArea = document.getElementById('uploadArea');
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+uploadArea.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f && f.name.endsWith('.docx')) {
+        selectedHomeworkFile = f;
+        document.getElementById('selectedFileName').textContent = f.name;
+        document.getElementById('fileNameDisplay').style.display = 'block';
+        document.getElementById('hwBtn').disabled = false;
+    } else {
+        alert('请上传 .docx 格式的 Word 文档');
+    }
+});
+
+function startHomeworkGrading() {
+    if (!selectedHomeworkFile) { alert('请先上传作业文档'); return; }
+
+    const btn = document.getElementById('hwBtn');
+    const progress = document.getElementById('hwProgress');
+    const resultsEl = document.getElementById('hwResults');
+    const summaryEl = document.getElementById('hwSummary');
+    const sourcesEl = document.getElementById('hwSourcesContent');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> 批改中...';
+    progress.style.display = 'block';
+    resultsEl.innerHTML = '';
+    summaryEl.style.display = 'none';
+    summaryEl.innerHTML = '';
+    sourcesEl.innerHTML = '';
+
+    const form = new FormData();
+    form.append('file', selectedHomeworkFile);
+    form.append('category', document.getElementById('category').value);
+
+    // 使用流式接口
+    fetch('/api/homework/grade/stream', {
+        method: 'POST',
+        body: form
+    }).then(response => {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let allSources = [];
+
+        function pump() {
+            reader.read().then(({ done, value }) => {
+                if (done) {
+                    btn.disabled = false;
+                    btn.innerHTML = '&#x1F50D; 开始批改';
+                    progress.style.display = 'none';
+                    return;
+                }
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                let currentEvent = 'message';
+                let dataLines = [];
+
+                function flushEvent() {
+                    if (dataLines.length === 0) return;
+                    const eventData = dataLines.join('\n');
+                    dataLines = [];
+                    if (currentEvent === 'question') {
+                        try {
+                            const q = JSON.parse(eventData);
+                            renderQuestion(q);
+                            if (q.sources) allSources.push(...q.sources);
+                        } catch(e) { console.error('parse question failed', e); }
+                    } else if (currentEvent === 'summary') {
+                        try {
+                            const s = JSON.parse(eventData);
+                            renderSummary(s);
+                        } catch(e) { console.error('parse summary failed', e); }
+                    } else if (currentEvent === 'done') {
+                        // 展示来源
+                        if (allSources.length && document.getElementById('showContext').checked) {
+                            const unique = [];
+                            const seen = new Set();
+                            for (const src of allSources) {
+                                const key = (src.source || '') + '|' + (src.type || '');
+                                if (!seen.has(key)) { seen.add(key); unique.push(src); }
+                            }
+                            sourcesEl.innerHTML = unique.map(x =>
+                                `<div class="source-item"><strong>${x.type==='standard'?'📋 评估标准':'📝 参考范例'}</strong> | ${x.source}<br><span style="color:#64748b">${x.text ? x.text.substring(0,200) : ''}</span></div>`
+                            ).join('');
+                            document.getElementById('hwSourcesArea').style.display = 'block';
+                        }
+                    }
+                }
+
+                for (const line of lines) {
+                    if (line === '') { flushEvent(); currentEvent = 'message'; continue; }
+                    if (line.startsWith('event: ')) { currentEvent = line.slice(7).trim(); continue; }
+                    if (line.startsWith('data: ')) { dataLines.push(line.slice(6)); continue; }
+                }
+                pump();
+            });
+        }
+        pump();
+    }).catch(err => {
+        progress.style.display = 'none';
+        btn.disabled = false;
+        btn.innerHTML = '&#x1F50D; 开始批改';
+        alert('批改失败: ' + err.message);
+    });
+}
+
+function renderQuestion(q) {
+    const dims = q.dimensions || {};
+    const dimOrder = ['requirement','style','logic','performance','maintain'];
+    const dimLabels = { requirement:'是否符合题意', style:'代码规范', logic:'逻辑正确性', performance:'性能与效率', maintain:'可维护性' };
+    const dimMaxs   = { requirement:30, style:20, logic:20, performance:15, maintain:15 };
+
+    let dimHtml = '<div class="score-grid" style="margin-bottom:16px;">';
+    for (const key of dimOrder) {
+        const d = dims[key];
+        if (!d) continue;
+        const pct = (d.score / d.maxScore) * 100;
+        const cl = pct >= 80 ? 'high' : pct >= 60 ? 'good' : pct >= 40 ? 'mid' : 'low';
+        dimHtml += `
+        <div class="score-card ${cl}">
+            <div class="dim-label">${d.label || dimLabels[key]}（满分 ${d.maxScore || dimMaxs[key]}）</div>
+            <div class="dim-score">${d.score}<span class="max">/ ${d.maxScore || dimMaxs[key]}</span></div>
+            ${d.comment ? `<div class="dim-comment">${d.comment}</div>` : ''}
+            <div class="pbar"><div class="pbar-fill ${cl}" style="width:${pct}%"></div></div>
+        </div>`;
+    }
+    dimHtml += '</div>';
+
+    const card = document.createElement('div');
+    card.className = 'q-card';
+    card.innerHTML = `
+        <div class="q-header" onclick="toggleQuestion(this)">
+            <div>
+                <span class="q-score">${q.score}</span>
+                <span style="font-size:.85rem;color:var(--muted)">/ ${q.maxScore}</span>
+                <span style="margin-left:12px;" class="q-title">第 ${q.index} 题：${q.title}</span>
+            </div>
+            <span style="font-size:.85rem;color:var(--muted)">点击展开 ▼</span>
+        </div>
+        <div class="q-body">
+            ${dimHtml}
+            <div class="md-content">${injectBadges(renderMarkdown(q.report || ''))}</div>
+        </div>
+    `;
+    document.getElementById('hwResults').appendChild(card);
+}
+
+function renderSummary(s) {
+    const pct = s.maxTotalScore ? (s.totalScore / s.maxTotalScore * 100) : 0;
+    const cl = pct >= 80 ? 'high' : pct >= 60 ? 'good' : pct >= 40 ? 'mid' : 'low';
+    const el = document.getElementById('hwSummary');
+    el.style.display = 'block';
+    el.innerHTML = `
+        <div class="total-card">
+            <div>
+                <div class="total-label">作业总分</div>
+                <div style="font-size:.85rem;opacity:.8">${s.fileName || ''}</div>
+            </div>
+            <div style="text-align:right">
+                <div class="total-score">${s.totalScore}</div>
+                <div class="total-max">/ ${s.maxTotalScore}</div>
+            </div>
+        </div>
+    `;
+}
+
+function toggleQuestion(header) {
+    const body = header.nextElementSibling;
+    const isOpen = body.classList.contains('open');
+    body.classList.toggle('open');
+    header.classList.toggle('open');
+    header.querySelector('span:last-child').textContent = isOpen ? '点击展开 ▼' : '点击收起 ▲';
+}
+
+// ================================================================
+// 通用
+// ================================================================
+function toggleContext() {
+    const checked = document.getElementById('showContext').checked;
+    document.getElementById('sourcesArea').style.display = checked ? 'block' : 'none';
+    document.getElementById('hwSourcesArea').style.display = checked ? 'block' : 'none';
+}
+
+async function loadStats() {
+    try {
+        const res = await fetch('/api/knowledge/stats');
+        const d = await res.json();
+        if (d.chunkCount > 0 || d.fileCount > 0) {
+            document.getElementById('statsBox').style.display = 'block';
+            document.getElementById('emptyHint').style.display = 'none';
+            document.getElementById('chunkCount').textContent = d.chunkCount;
+            document.getElementById('fileCount').textContent = d.fileCount;
+            document.getElementById('fileList').innerHTML = d.files.map(f => `<div>• ${f}</div>`).join('');
+        } else {
+            document.getElementById('statsBox').style.display = 'none';
+            document.getElementById('emptyHint').style.display = 'block';
+            document.getElementById('fileList').innerHTML = '';
+        }
+    } catch(e) {}
+}
+
+async function syncKnowledge() {
+    const btn = event.target;
+    btn.disabled = true; btn.textContent = '同步中...';
+    try { await fetch('/api/knowledge/sync', { method: 'POST' }); btn.textContent = '同步完成'; await loadStats(); }
+    catch(e) { btn.textContent = '同步失败'; }
+    finally { setTimeout(() => { btn.disabled = false; btn.textContent = '🔄 同步知识库'; }, 2000); }
+}
+
+function handleFileUpload(e) {
+    const f = e.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = ev => { document.getElementById('codeInput').value = ev.target.result; };
+    r.readAsText(f, 'UTF-8');
+}
+
+loadStats();
+</script>
+</body>
+</html>

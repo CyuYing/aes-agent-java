@@ -1,0 +1,33 @@
+# Compiled class files
+target/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.ipr
+*.iws
+
+# Logs
+*.log
+app.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Chroma local data
+chroma-data/
+
+# Application config with sensitive data
+src/main/resources/application.properties
+
+# Temp files
+*.tmp
+*.bak
+*.swp
+
+# Test output
+hw_*.json
+hw_*.txt
