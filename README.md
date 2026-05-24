@@ -36,11 +36,11 @@
 
 ## 二、快速预览
 
-![image-20260516004326397](C:\Users\26594\AppData\Roaming\Typora\typora-user-images\image-20260516004326397.png)
+![系统首页与 Java 作业批改工作台](docs/images/aes-home-java-homework.png)
 
-![image-20260516004444802](C:\Users\26594\AppData\Roaming\Typora\typora-user-images\image-20260516004444802.png)
+![数据库作业批改工作台](docs/images/aes-database-homework.png)
 
-![image-20260516004504053](C:\Users\26594\AppData\Roaming\Typora\typora-user-images\image-20260516004504053.png)
+![Java 与数据库知识库分区状态](docs/images/aes-knowledge-panels.png)
 
 ---
 
@@ -54,7 +54,7 @@
 - **左侧边栏**：知识库管理、评估类型选择、检索上下文显示开关
 - **右侧主区域**：两个功能 Tab ——「作业文档批改」和「数据库作业批改」
 
-![image-20260516004326397](C:\Users\26594\AppData\Roaming\Typora\typora-user-images\image-20260516004326397.png)
+![系统首页与 Java 作业批改工作台](docs/images/aes-home-java-homework.png)
 
 ---
 
@@ -79,7 +79,7 @@ Java作业评分标准_构造方法重载_Java17.txt
 
 点击左侧边栏的 **「同步 Java 知识库」** 或 **「同步数据库知识库」** 按钮，系统会自动加载文档、分块、向量化并建立索引。
 
-![image-20260516004612222](C:\Users\26594\AppData\Roaming\Typora\typora-user-images\image-20260516004612222.png)
+![Java 与数据库知识库分区状态](docs/images/aes-knowledge-panels.png)
 
 同步完成后，左侧会显示已索引的片段数和文件列表。
 
@@ -96,7 +96,7 @@ Java作业评分标准_构造方法重载_Java17.txt
 1. 切换到 **「作业文档批改」** Tab
 2. 点击或拖拽上传学生的 `.docx` 作业文档
 
-<img src="C:\Users\26594\AppData\Roaming\Typora\typora-user-images\image-20260516004848236.png" alt="image-20260516004848236" style="zoom:67%;" />
+![Java 作业文档上传入口](docs/images/aes-java-upload.png)
 
 3. （可选）在左侧选择评估类型
 4. 点击 **「开始批改」** 按钮
@@ -130,7 +130,9 @@ Java作业评分标准_构造方法重载_Java17.txt
 
 顶部显示作业总分卡片，包含文件名称和总分：
 
-<img src="C:\Users\26594\AppData\Roaming\Typora\typora-user-images\image-20260516004924017.png" alt="image-20260516004924017" style="zoom:67%;" />
+下图为当前实际运行的数据库作业批改工作台。上传并开始批改后，总分汇总、逐题详情、SQL 执行证据和 RAG 来源会在同一工作台下方展开。
+
+![数据库作业批改工作台](docs/images/aes-database-homework.png)
 
 #### 逐题详情
 
