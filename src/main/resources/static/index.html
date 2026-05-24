@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Java 作业智能批改系统</title>
+<title>教学作业智能评估平台</title>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
 :root {
-    --primary: #4f46e5; --primary-light: #eef2ff;
+    --primary: #0f766e; --primary-light: #e6f4f1;
     --bg: #f1f5f9; --card: #ffffff; --border: #e2e8f0;
     --text: #1e293b; --muted: #64748b;
     --red: #ef4444; --orange: #f59e0b; --green: #10b981; --blue: #3b82f6;
@@ -28,12 +28,14 @@ body { font-family: var(--font-sans); background: var(--bg); color: var(--text);
 }
 .sidebar h1 { font-size: 1.3rem; color: var(--primary); }
 .sidebar h2 { font-size: 1rem; margin-bottom: 6px; }
+.sidebar h3 { font-size: .86rem; margin-bottom: 6px; color: var(--text); }
 .btn { padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; font-size: .88rem; font-weight: 500; transition: all .2s; }
 .btn-primary { background: var(--primary); color: #fff; width: 100%; font-size: 1rem; padding: 14px; }
 .btn-primary:hover { filter: brightness(1.1); }
 .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
 .btn-outline { background: var(--card); border: 1px solid var(--border); width: 100%; }
 .btn-outline:hover { background: var(--bg); }
+.kb-panel { border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-top: 10px; background: #f8fafc; }
 .stats-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px; font-size: .85rem; }
 .stats-box strong { color: var(--green); }
 .empty-hint { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px; font-size: .82rem; color: #3b82f6; line-height: 1.7; }
@@ -92,7 +94,7 @@ textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 
 /* Score cards */
 .score-overview { margin-bottom: 20px; }
 .total-card {
-    background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+    background: #172033;
     color: #fff; border-radius: var(--radius); padding: 20px 24px;
     display: flex; align-items: center; justify-content: space-between;
     margin-bottom: 14px; box-shadow: var(--shadow);
@@ -176,6 +178,26 @@ textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 
 .source-item { padding: 8px 0; border-bottom: 1px solid #fde68a; }
 .source-item:last-child { border-bottom: none; }
 
+.exec-box {
+    background: #f8fafc; border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px; margin: 12px 0 16px;
+    font-size: .82rem;
+}
+.exec-status { font-weight: 700; margin-bottom: 8px; }
+.exec-status.ok { color: var(--green); }
+.exec-status.fail { color: var(--red); }
+.sql-statement {
+    border-top: 1px solid var(--border); padding-top: 10px; margin-top: 10px;
+}
+.sql-statement pre {
+    background: #0f172a; color: #e2e8f0; border-radius: 8px;
+    padding: 10px; overflow-x: auto; font-family: var(--font-mono);
+    font-size: .78rem; line-height: 1.5; margin: 6px 0;
+}
+.sql-table { border-collapse: collapse; width: 100%; margin-top: 8px; font-size: .78rem; }
+.sql-table th, .sql-table td { border: 1px solid var(--border); padding: 5px 8px; text-align: left; }
+.sql-table th { background: #eef2ff; color: var(--muted); }
+
 .badge { display: inline-block; padding: 1px 7px; border-radius: 12px; font-size: .75rem; font-weight: 600; margin: 0 2px; }
 .badge-red { background: #fef2f2; color: var(--red); border: 1px solid #fecaca; }
 .badge-orange { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
@@ -192,30 +214,442 @@ textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 
     .score-grid { grid-template-columns: 1fr; }
     .total-card { flex-direction: column; text-align: center; gap: 8px; }
 }
+
+/* Premium console skin */
+:root {
+    --primary: #0f766e;
+    --primary-strong: #115e59;
+    --primary-light: #e6f4f1;
+    --accent: #b45309;
+    --accent-light: #fff7ed;
+    --bg: #f6f8fb;
+    --surface: #fbfcfe;
+    --card: #ffffff;
+    --border: #d9e2ec;
+    --border-strong: #b8c5d1;
+    --text: #172033;
+    --muted: #657386;
+    --red: #dc2626;
+    --orange: #d97706;
+    --green: #059669;
+    --blue: #2563eb;
+    --shadow: 0 18px 45px rgba(23, 32, 51, .08), 0 2px 10px rgba(23, 32, 51, .04);
+    --shadow-soft: 0 10px 24px rgba(23, 32, 51, .06);
+    --radius: 8px;
+}
+
+body {
+    background:
+        linear-gradient(180deg, #f9fbfd 0%, #f3f6fa 42%, #eef3f7 100%);
+    letter-spacing: 0;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        linear-gradient(rgba(15, 118, 110, .045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(15, 118, 110, .035) 1px, transparent 1px);
+    background-size: 36px 36px;
+    mask-image: linear-gradient(180deg, rgba(0,0,0,.75), transparent 70%);
+}
+
+.container {
+    position: relative;
+}
+
+.sidebar {
+    width: 332px;
+    min-width: 332px;
+    background: rgba(255, 255, 255, .88);
+    border-right: 1px solid rgba(184, 197, 209, .8);
+    box-shadow: 12px 0 30px rgba(23, 32, 51, .04);
+    backdrop-filter: blur(14px);
+    padding: 22px;
+}
+
+.brand-block {
+    display: grid;
+    gap: 8px;
+    padding: 14px 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbfd 100%);
+    box-shadow: var(--shadow-soft);
+}
+
+.brand-kicker {
+    color: var(--accent);
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.sidebar h1 {
+    color: var(--text);
+    font-size: 1.18rem;
+    line-height: 1.35;
+}
+
+.sidebar h2 {
+    color: var(--text);
+    font-size: .86rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.sidebar h3 {
+    color: var(--text);
+    font-size: .88rem;
+    font-weight: 750;
+}
+
+.kb-panel {
+    background: var(--surface);
+    border-color: var(--border);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, .7) inset;
+}
+
+.stats-box {
+    background: #ecfdf5;
+    border-color: #a7f3d0;
+    color: #064e3b;
+}
+
+.empty-hint {
+    background: #f8fafc;
+    border-color: var(--border);
+    color: var(--muted);
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 700;
+    letter-spacing: 0;
+}
+
+.btn-primary {
+    background: #0f766e;
+    box-shadow: 0 12px 22px rgba(15, 118, 110, .18);
+}
+
+.btn-primary:hover {
+    background: var(--primary-strong);
+    transform: translateY(-1px);
+    filter: none;
+}
+
+.btn-outline {
+    background: #ffffff;
+    border-color: var(--border-strong);
+    color: var(--text);
+}
+
+.btn-outline:hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    color: var(--primary-strong);
+}
+
+select,
+textarea {
+    background: #ffffff;
+    border-color: var(--border-strong);
+    color: var(--text);
+    box-shadow: 0 1px 0 rgba(255,255,255,.8) inset;
+}
+
+textarea {
+    min-height: 420px;
+    font-size: .9rem;
+}
+
+textarea:focus,
+select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(15, 118, 110, .12);
+}
+
+.main {
+    max-width: 1240px;
+    padding: 28px 38px 52px;
+}
+
+.workspace-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 22px;
+}
+
+.workspace-title {
+    display: grid;
+    gap: 6px;
+}
+
+.workspace-title span {
+    color: var(--accent);
+    font-size: .74rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}
+
+.workspace-title h2 {
+    font-size: clamp(1.7rem, 3vw, 2.35rem);
+    line-height: 1.15;
+    font-weight: 850;
+    color: var(--text);
+}
+
+.workspace-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.meta-pill {
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: rgba(255,255,255,.8);
+    color: var(--muted);
+    padding: 7px 11px;
+    font-size: .78rem;
+    font-weight: 700;
+}
+
+.tabs {
+    gap: 6px;
+    margin-bottom: 22px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 5px;
+    background: rgba(255,255,255,.78);
+    box-shadow: var(--shadow-soft);
+}
+
+.tab {
+    flex: 1;
+    min-height: 42px;
+    margin: 0;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--muted);
+}
+
+.tab.active {
+    color: var(--text);
+    border-color: var(--border);
+    background: #ffffff;
+    box-shadow: 0 8px 20px rgba(23, 32, 51, .08);
+}
+
+.tab:hover {
+    color: var(--primary-strong);
+}
+
+.tab-content {
+    padding: 22px;
+    background: rgba(255,255,255,.82);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+}
+
+.tab-content > h2 {
+    font-size: 1.05rem;
+    margin-bottom: 14px;
+    color: var(--text);
+}
+
+.upload-area {
+    background:
+        linear-gradient(180deg, #ffffff 0%, #f7fafc 100%);
+    border: 1px dashed var(--border-strong);
+    min-height: 190px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 4px;
+}
+
+.upload-area:hover,
+.upload-area.dragover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    box-shadow: 0 0 0 4px rgba(15,118,110,.08);
+}
+
+.stream-raw,
+.q-card,
+.score-card,
+.exec-box,
+.sources-box {
+    border-color: var(--border);
+    box-shadow: var(--shadow-soft);
+}
+
+.total-card {
+    background: #172033;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 8px;
+    box-shadow: 0 18px 38px rgba(23, 32, 51, .18);
+}
+
+.total-card .total-score {
+    font-size: 2.25rem;
+}
+
+.score-card {
+    border-radius: 8px;
+    border-left-width: 3px;
+}
+
+.score-card .dim-label,
+.score-card .dim-comment {
+    color: var(--muted);
+}
+
+.q-card {
+    border-radius: 8px;
+    box-shadow: none;
+}
+
+.q-header {
+    background: #ffffff;
+}
+
+.q-header:hover {
+    background: #f8fafc;
+}
+
+.q-score {
+    color: var(--primary);
+}
+
+.md-content h2,
+.md-content h3 {
+    border-bottom-color: var(--border);
+}
+
+.md-content h4,
+.md-content a {
+    color: var(--primary-strong);
+}
+
+.md-content blockquote {
+    border-left-color: var(--primary);
+    background: var(--primary-light);
+    color: var(--primary-strong);
+}
+
+.sources-box {
+    background: #fffaf0;
+    border-color: #fed7aa;
+}
+
+.source-item {
+    border-bottom-color: #fed7aa;
+}
+
+.exec-box {
+    background: #fbfcfe;
+}
+
+.sql-statement pre,
+.md-content pre {
+    background: #111827;
+    border: 1px solid #273244;
+}
+
+.sql-table th {
+    background: #f1f5f9;
+}
+
+.toggle-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+
+@media (max-width: 960px) {
+    .workspace-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+    .workspace-meta {
+        justify-content: flex-start;
+    }
+    .tabs {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        min-width: 0;
+    }
+    .main {
+        padding: 18px;
+    }
+    .tab-content {
+        padding: 16px;
+    }
+    textarea {
+        min-height: 300px;
+    }
+}
 </style>
 </head>
 <body>
 <div class="container">
 
 <aside class="sidebar">
-    <h1>&#x1F4BB; Java 作业智能批改</h1>
-    <p style="font-size:.85rem;color:var(--muted)">基于 RAG 的自动作业批改与代码评估</p>
-
-    <div>
-        <h2>&#x1F4DA; 知识库管理</h2>
-        <button class="btn btn-outline" onclick="syncKnowledge()">&#x1F504; 同步知识库</button>
-        <div id="statsBox" class="stats-box" style="margin-top:12px;display:none;">
-            <div>已索引: <strong id="chunkCount">-</strong> 个片段</div>
-            <div>文件数: <strong id="fileCount">-</strong></div>
-        </div>
-        <div id="emptyHint" class="empty-hint" style="margin-top:8px;display:none;">
-            知识库为空。将评分标准文档放入 <code>data/knowledge_base/</code> 后点击同步。
-        </div>
-        <div id="fileList" class="file-list" style="margin-top:8px;"></div>
+    <div class="brand-block">
+        <div class="brand-kicker">Assessment Studio</div>
+        <h1>教学作业智能评估平台</h1>
+        <p style="font-size:.84rem;color:var(--muted)">Java 与数据库作业的一体化批改工作台</p>
     </div>
 
     <div>
-        <h2>&#x1F4CB; 评估配置</h2>
+        <h2>知识库管理</h2>
+        <div class="kb-panel">
+            <h3>Java 知识库</h3>
+            <button class="btn btn-outline" onclick="syncKnowledge()">同步 Java 知识库</button>
+            <div id="statsBox" class="stats-box" style="margin-top:12px;display:none;">
+                <div>已索引: <strong id="chunkCount">-</strong> 个片段</div>
+                <div>文件数: <strong id="fileCount">-</strong></div>
+            </div>
+            <div id="emptyHint" class="empty-hint" style="margin-top:8px;display:none;">
+                知识库为空。将 Java 评分标准文档放入 <code>data/knowledge_base/</code> 后点击同步。
+            </div>
+            <div id="fileList" class="file-list" style="margin-top:8px;"></div>
+        </div>
+        <div class="kb-panel">
+            <h3>数据库知识库</h3>
+            <button class="btn btn-outline" onclick="syncDatabaseKnowledge()">同步数据库知识库</button>
+            <div id="dbStatsBox" class="stats-box" style="margin-top:12px;display:none;">
+                <div>已索引: <strong id="dbChunkCount">-</strong> 个片段</div>
+                <div>文件数: <strong id="dbFileCount">-</strong></div>
+            </div>
+            <div id="dbEmptyHint" class="empty-hint" style="margin-top:8px;display:none;">
+                知识库为空。将数据库评分标准文档放入 <code>data/database_knowledge_base/</code> 后点击同步。
+            </div>
+            <div id="dbFileList" class="file-list" style="margin-top:8px;"></div>
+        </div>
+    </div>
+
+    <div>
+        <h2>评估配置</h2>
         <label style="font-size:.85rem;color:var(--muted)">评估类型</label>
         <select id="category">
             <option value="">通用评估</option>
@@ -237,25 +671,38 @@ textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 
 </aside>
 
 <main class="main">
+    <div class="workspace-header">
+        <div class="workspace-title">
+            <span>AI Evaluation Console</span>
+            <h2>作业批改控制台</h2>
+        </div>
+        <div class="workspace-meta">
+            <span class="meta-pill">RAG 标准检索</span>
+            <span class="meta-pill">SQL 执行验证</span>
+            <span class="meta-pill">SSE 实时反馈</span>
+        </div>
+    </div>
+
     <div class="tabs">
         <button class="tab active" onclick="switchTab('single')">单代码评估</button>
         <button class="tab" onclick="switchTab('homework')">作业文档批改</button>
+        <button class="tab" onclick="switchTab('database')">数据库作业批改</button>
     </div>
 
     <!-- ========== 单代码评估 ========== -->
     <div id="tab-single" class="tab-content active">
-        <h2>&#x1F4C4; 代码提交</h2>
+        <h2>代码提交</h2>
         <textarea id="codeInput" rows="16" placeholder="在此粘贴要评估的 Java 代码..."></textarea>
         <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
             <span style="font-size:.8rem;color:var(--muted)">或上传 .java 文件：</span>
             <input type="file" id="fileUpload" accept=".java,.txt" onchange="handleFileUpload(event)" style="font-size:.8rem;">
         </div>
         <button class="btn btn-primary" id="scoreBtn" onclick="startEvaluation()" style="margin-top:16px;">
-            &#x1F50D; 开始评估
+            开始评估
         </button>
 
         <div id="streamArea" style="display:none;">
-            <h3 style="margin-top:16px;">&#x1F4CA; AI 评估报告</h3>
+            <h3 style="margin-top:16px;">AI 评估报告</h3>
             <div class="stream-raw" id="streamRaw"></div>
         </div>
 
@@ -265,16 +712,16 @@ textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 
         </div>
 
         <div id="sourcesArea" style="display:none;">
-            <h3 style="margin-top:20px;">&#x1F50D; 检索到的上下文（RAG 源文档）</h3>
+            <h3 style="margin-top:20px;">检索到的上下文（RAG 源文档）</h3>
             <div class="sources-box" id="sourcesContent"></div>
         </div>
     </div>
 
     <!-- ========== 作业文档批改 ========== -->
     <div id="tab-homework" class="tab-content">
-        <h2>&#x1F4C4; 上传作业文档</h2>
+        <h2>上传作业文档</h2>
         <div class="upload-area" id="uploadArea" onclick="document.getElementById('homeworkFile').click()">
-            <div style="font-size:2.5rem;margin-bottom:8px;">&#x1F4E4;</div>
+            <div style="font-size:1.7rem;margin-bottom:8px;">DOCX</div>
             <div style="font-weight:600;margin-bottom:4px;">点击或拖拽上传 Word 文档</div>
             <div style="font-size:.85rem;color:var(--muted)">支持 .docx 格式，文档中可包含多道编程题</div>
             <input type="file" id="homeworkFile" accept=".docx" onchange="handleHomeworkFile(event)">
@@ -283,7 +730,7 @@ textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 
             已选择：<strong id="selectedFileName"></strong>
         </div>
         <button class="btn btn-primary" id="hwBtn" onclick="startHomeworkGrading()" style="margin-top:16px;" disabled>
-            &#x1F50D; 开始批改
+            开始批改
         </button>
 
         <!-- 进度 -->
@@ -299,8 +746,37 @@ textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 
 
         <!-- RAG 来源 -->
         <div id="hwSourcesArea" style="display:none;">
-            <h3 style="margin-top:20px;">&#x1F50D; 检索到的上下文（RAG 源文档）</h3>
+            <h3 style="margin-top:20px;">检索到的上下文（RAG 源文档）</h3>
             <div class="sources-box" id="hwSourcesContent"></div>
+        </div>
+    </div>
+
+    <!-- ========== 数据库作业文档批改 ========== -->
+    <div id="tab-database" class="tab-content">
+        <h2>上传数据库作业文档</h2>
+        <div class="upload-area" id="dbUploadArea" onclick="document.getElementById('databaseFile').click()">
+            <div style="font-size:1.7rem;margin-bottom:8px;">SQL</div>
+            <div style="font-weight:600;margin-bottom:4px;">点击或拖拽上传数据库作业 Word 文档</div>
+            <div style="font-size:.85rem;color:var(--muted)">支持 .docx，建议包含题目要求、初始化 SQL、学生 SQL</div>
+            <input type="file" id="databaseFile" accept=".docx" onchange="handleDatabaseFile(event)">
+        </div>
+        <div id="dbFileNameDisplay" style="margin-top:12px;font-size:.9rem;color:var(--muted);display:none;">
+            已选择：<strong id="dbSelectedFileName"></strong>
+        </div>
+        <button class="btn btn-primary" id="dbHwBtn" onclick="startDatabaseHomeworkGrading()" style="margin-top:16px;" disabled>
+            开始批改数据库作业
+        </button>
+
+        <div id="dbHwProgress" style="margin-top:16px;display:none;">
+            <span class="spinner"></span> 正在解析文档、执行 SQL 并逐题批改...
+        </div>
+
+        <div id="dbHwSummary" style="display:none;margin-top:20px;"></div>
+        <div id="dbHwResults" style="margin-top:16px;"></div>
+
+        <div id="dbHwSourcesArea" style="display:none;">
+            <h3 style="margin-top:20px;">检索到的数据库上下文（RAG 源文档）</h3>
+            <div class="sources-box" id="dbHwSourcesContent"></div>
         </div>
     </div>
 </main>
@@ -322,7 +798,11 @@ function switchTab(name) {
 // ================================================================
 function renderMarkdown(text) {
     if (!text || !text.trim()) return '';
-    return marked.parse(text);
+    if (window.marked && typeof marked.parse === 'function') {
+        return marked.parse(text);
+    }
+    return '<pre style="white-space:pre-wrap;background:#f8fafc;color:var(--text);border:1px solid var(--border);">' +
+        escapeHtml(text) + '</pre>';
 }
 
 // ================================================================
@@ -428,7 +908,7 @@ function startEvaluation() {
             reader.read().then(({ done, value }) => {
                 if (done) {
                     btn.disabled = false;
-                    btn.innerHTML = '&#x1F50D; 开始评估';
+                    btn.innerHTML = '开始评估';
                     streamArea.style.display = 'none';
                     finalArea.style.display = 'block';
                     let body = fullText.replace(/###\s*二[、,]\s*分维度评分[\s\S]*?(?=\n###\s|$)/, '');
@@ -452,7 +932,7 @@ function startEvaluation() {
                         try {
                             const s = JSON.parse(eventData);
                             sourcesEl.innerHTML = s.map(x =>
-                                `<div class="source-item"><strong>${x.type==='standard'?'📋 评估标准':'📝 参考范例'}</strong> | ${x.source}<br><span style="color:#64748b">${x.text}</span></div>`
+                                `<div class="source-item"><strong>${x.type==='standard'?'评估标准':'参考范例'}</strong> | ${x.source}<br><span style="color:#64748b">${x.text}</span></div>`
                             ).join('');
                             if (document.getElementById('showContext').checked)
                                 document.getElementById('sourcesArea').style.display = 'block';
@@ -475,7 +955,7 @@ function startEvaluation() {
     }).catch(err => {
         streamRaw.textContent = '评估失败: ' + err.message;
         btn.disabled = false;
-        btn.innerHTML = '&#x1F50D; 开始评估';
+        btn.innerHTML = '开始评估';
     });
 }
 
@@ -546,7 +1026,7 @@ function startHomeworkGrading() {
             reader.read().then(({ done, value }) => {
                 if (done) {
                     btn.disabled = false;
-                    btn.innerHTML = '&#x1F50D; 开始批改';
+                    btn.innerHTML = '开始批改';
                     progress.style.display = 'none';
                     return;
                 }
@@ -583,7 +1063,7 @@ function startHomeworkGrading() {
                                 if (!seen.has(key)) { seen.add(key); unique.push(src); }
                             }
                             sourcesEl.innerHTML = unique.map(x =>
-                                `<div class="source-item"><strong>${x.type==='standard'?'📋 评估标准':'📝 参考范例'}</strong> | ${x.source}<br><span style="color:#64748b">${x.text ? x.text.substring(0,200) : ''}</span></div>`
+                                `<div class="source-item"><strong>${x.type==='standard'?'评估标准':'参考范例'}</strong> | ${x.source}<br><span style="color:#64748b">${x.text ? x.text.substring(0,200) : ''}</span></div>`
                             ).join('');
                             document.getElementById('hwSourcesArea').style.display = 'block';
                         }
@@ -602,7 +1082,7 @@ function startHomeworkGrading() {
     }).catch(err => {
         progress.style.display = 'none';
         btn.disabled = false;
-        btn.innerHTML = '&#x1F50D; 开始批改';
+        btn.innerHTML = '开始批改';
         alert('批改失败: ' + err.message);
     });
 }
@@ -676,15 +1156,255 @@ function toggleQuestion(header) {
 }
 
 // ================================================================
+// 数据库作业文档批改
+// ================================================================
+let selectedDatabaseFile = null;
+
+function escapeHtml(text) {
+    return String(text ?? '').replace(/[&<>"']/g, ch => ({
+        '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+    }[ch]));
+}
+
+function handleDatabaseFile(e) {
+    const f = e.target.files[0];
+    if (!f) return;
+    selectedDatabaseFile = f;
+    document.getElementById('dbSelectedFileName').textContent = f.name;
+    document.getElementById('dbFileNameDisplay').style.display = 'block';
+    document.getElementById('dbHwBtn').disabled = false;
+}
+
+const dbUploadArea = document.getElementById('dbUploadArea');
+dbUploadArea.addEventListener('dragover', e => { e.preventDefault(); dbUploadArea.classList.add('dragover'); });
+dbUploadArea.addEventListener('dragleave', () => dbUploadArea.classList.remove('dragover'));
+dbUploadArea.addEventListener('drop', e => {
+    e.preventDefault();
+    dbUploadArea.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f && f.name.endsWith('.docx')) {
+        selectedDatabaseFile = f;
+        document.getElementById('dbSelectedFileName').textContent = f.name;
+        document.getElementById('dbFileNameDisplay').style.display = 'block';
+        document.getElementById('dbHwBtn').disabled = false;
+    } else {
+        alert('请上传 .docx 格式的数据库作业文档');
+    }
+});
+
+function startDatabaseHomeworkGrading() {
+    if (!selectedDatabaseFile) { alert('请先上传数据库作业文档'); return; }
+
+    const btn = document.getElementById('dbHwBtn');
+    const progress = document.getElementById('dbHwProgress');
+    const resultsEl = document.getElementById('dbHwResults');
+    const summaryEl = document.getElementById('dbHwSummary');
+    const sourcesEl = document.getElementById('dbHwSourcesContent');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> 批改中...';
+    progress.style.display = 'block';
+    resultsEl.innerHTML = '';
+    summaryEl.style.display = 'none';
+    summaryEl.innerHTML = '';
+    sourcesEl.innerHTML = '';
+    document.getElementById('dbHwSourcesArea').style.display = 'none';
+
+    const form = new FormData();
+    form.append('file', selectedDatabaseFile);
+    form.append('category', document.getElementById('category').value);
+
+    fetch('/api/database/homework/grade/stream', {
+        method: 'POST',
+        body: form
+    }).then(response => {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let allSources = [];
+
+        function pump() {
+            reader.read().then(({ done, value }) => {
+                if (done) {
+                    btn.disabled = false;
+                    btn.innerHTML = '开始批改数据库作业';
+                    progress.style.display = 'none';
+                    return;
+                }
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                let currentEvent = 'message';
+                let dataLines = [];
+
+                function flushEvent() {
+                    if (dataLines.length === 0) return;
+                    const eventData = dataLines.join('\n');
+                    dataLines = [];
+                    if (currentEvent === 'question') {
+                        try {
+                            const q = JSON.parse(eventData);
+                            renderDatabaseQuestion(q);
+                            if (q.sources) allSources.push(...q.sources);
+                        } catch(e) { console.error('parse database question failed', e); }
+                    } else if (currentEvent === 'summary') {
+                        try {
+                            const s = JSON.parse(eventData);
+                            renderDatabaseSummary(s);
+                        } catch(e) { console.error('parse database summary failed', e); }
+                    } else if (currentEvent === 'done') {
+                        renderDatabaseSources(allSources);
+                    }
+                }
+
+                for (const line of lines) {
+                    if (line === '') { flushEvent(); currentEvent = 'message'; continue; }
+                    if (line.startsWith('event: ')) { currentEvent = line.slice(7).trim(); continue; }
+                    if (line.startsWith('data: ')) { dataLines.push(line.slice(6)); continue; }
+                }
+                pump();
+            });
+        }
+        pump();
+    }).catch(err => {
+        progress.style.display = 'none';
+        btn.disabled = false;
+        btn.innerHTML = '开始批改数据库作业';
+        alert('数据库作业批改失败: ' + err.message);
+    });
+}
+
+function renderDatabaseQuestion(q) {
+    const dims = q.dimensions || {};
+    const dimOrder = ['requirement','style','logic','performance','security'];
+    const dimLabels = {
+        requirement:'题意与执行结果正确性',
+        style:'SQL 规范与可读性',
+        logic:'关系建模与查询逻辑',
+        performance:'性能与索引意识',
+        security:'安全性与可维护性'
+    };
+    const dimMaxs = { requirement:35, style:15, logic:25, performance:15, security:10 };
+
+    let dimHtml = '<div class="score-grid" style="margin-bottom:16px;">';
+    for (const key of dimOrder) {
+        const d = dims[key];
+        if (!d) continue;
+        const max = d.maxScore || dimMaxs[key];
+        const pct = max ? (d.score / max) * 100 : 0;
+        const cl = pct >= 80 ? 'high' : pct >= 60 ? 'good' : pct >= 40 ? 'mid' : 'low';
+        dimHtml += `
+        <div class="score-card ${cl}">
+            <div class="dim-label">${d.label || dimLabels[key]}（满分 ${max}）</div>
+            <div class="dim-score">${d.score}<span class="max">/ ${max}</span></div>
+            ${d.comment ? `<div class="dim-comment">${escapeHtml(d.comment)}</div>` : ''}
+            <div class="pbar"><div class="pbar-fill ${cl}" style="width:${pct}%"></div></div>
+        </div>`;
+    }
+    dimHtml += '</div>';
+
+    const card = document.createElement('div');
+    card.className = 'q-card';
+    card.innerHTML = `
+        <div class="q-header" onclick="toggleQuestion(this)">
+            <div>
+                <span class="q-score">${q.score}</span>
+                <span style="font-size:.85rem;color:var(--muted)">/ ${q.maxScore}</span>
+                <span style="margin-left:12px;" class="q-title">第 ${q.index} 题：${escapeHtml(q.title)}</span>
+            </div>
+            <span style="font-size:.85rem;color:var(--muted)">点击展开 ▼</span>
+        </div>
+        <div class="q-body">
+            ${dimHtml}
+            ${renderSqlExecution(q.execution)}
+            <div class="md-content">${injectBadges(renderMarkdown(q.report || ''))}</div>
+        </div>
+    `;
+    document.getElementById('dbHwResults').appendChild(card);
+}
+
+function renderSqlExecution(execution) {
+    if (!execution) return '';
+    const statusClass = execution.success ? 'ok' : 'fail';
+    let html = `<div class="exec-box">
+        <div class="exec-status ${statusClass}">SQL 执行${execution.success ? '成功' : '失败'}</div>`;
+    if (execution.errorSummary) {
+        html += `<div style="color:var(--red);margin-bottom:8px;">${escapeHtml(execution.errorSummary)}</div>`;
+    }
+    for (const [idx, st] of (execution.statements || []).entries()) {
+        html += `<div class="sql-statement">
+            <div style="font-weight:600;">语句 ${idx + 1}：${st.success ? '成功' : '失败'}</div>
+            <pre>${escapeHtml(st.sql)}</pre>`;
+        if (st.error) {
+            html += `<div style="color:var(--red);">错误：${escapeHtml(st.error)}</div>`;
+        } else if (st.rows && st.rows.length) {
+            html += renderRowsTable(st.columns || [], st.rows);
+        } else {
+            html += `<div>影响行数：${st.updateCount}</div>`;
+        }
+        html += '</div>';
+    }
+    html += '</div>';
+    return html;
+}
+
+function renderRowsTable(columns, rows) {
+    let html = '<table class="sql-table"><thead><tr>';
+    for (const col of columns) html += `<th>${escapeHtml(col)}</th>`;
+    html += '</tr></thead><tbody>';
+    for (const row of rows) {
+        html += '<tr>';
+        for (const col of columns) html += `<td>${escapeHtml(row[col])}</td>`;
+        html += '</tr>';
+    }
+    html += '</tbody></table>';
+    return html;
+}
+
+function renderDatabaseSummary(s) {
+    const el = document.getElementById('dbHwSummary');
+    el.style.display = 'block';
+    el.innerHTML = `
+        <div class="total-card">
+            <div>
+                <div class="total-label">数据库作业总分</div>
+                <div style="font-size:.85rem;opacity:.8">${escapeHtml(s.fileName || '')}</div>
+            </div>
+            <div style="text-align:right">
+                <div class="total-score">${s.totalScore}</div>
+                <div class="total-max">/ ${s.maxTotalScore}</div>
+            </div>
+        </div>
+    `;
+}
+
+function renderDatabaseSources(allSources) {
+    if (!allSources.length || !document.getElementById('showContext').checked) return;
+    const unique = [];
+    const seen = new Set();
+    for (const src of allSources) {
+        const key = (src.source || '') + '|' + (src.type || '');
+        if (!seen.has(key)) { seen.add(key); unique.push(src); }
+    }
+    document.getElementById('dbHwSourcesContent').innerHTML = unique.map(x =>
+        `<div class="source-item"><strong>${x.type==='reference'?'参考范例':'评估标准'}</strong> | ${escapeHtml(x.source)}<br><span style="color:#64748b">${escapeHtml(x.text ? x.text.substring(0,200) : '')}</span></div>`
+    ).join('');
+    document.getElementById('dbHwSourcesArea').style.display = 'block';
+}
+
+// ================================================================
 // 通用
 // ================================================================
 function toggleContext() {
     const checked = document.getElementById('showContext').checked;
     document.getElementById('sourcesArea').style.display = checked ? 'block' : 'none';
     document.getElementById('hwSourcesArea').style.display = checked ? 'block' : 'none';
+    document.getElementById('dbHwSourcesArea').style.display = checked ? 'block' : 'none';
 }
 
-async function loadStats() {
+async function loadJavaStats() {
     try {
         const res = await fetch('/api/knowledge/stats');
         const d = await res.json();
@@ -702,12 +1422,42 @@ async function loadStats() {
     } catch(e) {}
 }
 
+async function loadDatabaseStats() {
+    try {
+        const res = await fetch('/api/database/knowledge/stats');
+        const d = await res.json();
+        if (d.chunkCount > 0 || d.fileCount > 0) {
+            document.getElementById('dbStatsBox').style.display = 'block';
+            document.getElementById('dbEmptyHint').style.display = 'none';
+            document.getElementById('dbChunkCount').textContent = d.chunkCount;
+            document.getElementById('dbFileCount').textContent = d.fileCount;
+            document.getElementById('dbFileList').innerHTML = d.files.map(f => `<div>• ${escapeHtml(f)}</div>`).join('');
+        } else {
+            document.getElementById('dbStatsBox').style.display = 'none';
+            document.getElementById('dbEmptyHint').style.display = 'block';
+            document.getElementById('dbFileList').innerHTML = '';
+        }
+    } catch(e) {}
+}
+
+async function loadStats() {
+    await Promise.all([loadJavaStats(), loadDatabaseStats()]);
+}
+
 async function syncKnowledge() {
     const btn = event.target;
     btn.disabled = true; btn.textContent = '同步中...';
-    try { await fetch('/api/knowledge/sync', { method: 'POST' }); btn.textContent = '同步完成'; await loadStats(); }
+    try { await fetch('/api/knowledge/sync', { method: 'POST' }); btn.textContent = '同步完成'; await loadJavaStats(); }
     catch(e) { btn.textContent = '同步失败'; }
-    finally { setTimeout(() => { btn.disabled = false; btn.textContent = '🔄 同步知识库'; }, 2000); }
+    finally { setTimeout(() => { btn.disabled = false; btn.textContent = '同步 Java 知识库'; }, 2000); }
+}
+
+async function syncDatabaseKnowledge() {
+    const btn = event.target;
+    btn.disabled = true; btn.textContent = '同步中...';
+    try { await fetch('/api/database/knowledge/sync', { method: 'POST' }); btn.textContent = '同步完成'; await loadDatabaseStats(); }
+    catch(e) { btn.textContent = '同步失败'; }
+    finally { setTimeout(() => { btn.disabled = false; btn.textContent = '同步数据库知识库'; }, 2000); }
 }
 
 function handleFileUpload(e) {

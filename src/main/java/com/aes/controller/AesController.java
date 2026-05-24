@@ -1,6 +1,8 @@
 package com.aes.controller;
 
 import com.aes.model.Dto;
+import com.aes.service.DatabaseHomeworkService;
+import com.aes.service.DatabaseKnowledgeService;
 import com.aes.service.DocumentParserService;
 import com.aes.service.HomeworkService;
 import com.aes.service.KnowledgeService;
@@ -20,15 +22,21 @@ public class AesController {
     private final ScoringService scoringService;
     private final DocumentParserService documentParserService;
     private final HomeworkService homeworkService;
+    private final DatabaseKnowledgeService databaseKnowledgeService;
+    private final DatabaseHomeworkService databaseHomeworkService;
 
     public AesController(KnowledgeService knowledgeService,
                          ScoringService scoringService,
                          DocumentParserService documentParserService,
-                         HomeworkService homeworkService) {
+                         HomeworkService homeworkService,
+                         DatabaseKnowledgeService databaseKnowledgeService,
+                         DatabaseHomeworkService databaseHomeworkService) {
         this.knowledgeService = knowledgeService;
         this.scoringService = scoringService;
         this.documentParserService = documentParserService;
         this.homeworkService = homeworkService;
+        this.databaseKnowledgeService = databaseKnowledgeService;
+        this.databaseHomeworkService = databaseHomeworkService;
     }
 
     // ================================================================
@@ -51,6 +59,26 @@ public class AesController {
                 "success", true,
                 "chunkCount", knowledgeService.getChunkCount(),
                 "fileCount", knowledgeService.getFileCount()
+        );
+    }
+
+    @GetMapping("/database/knowledge/stats")
+    public Dto.KnowledgeStats getDatabaseKnowledgeStats() {
+        return new Dto.KnowledgeStats(
+                databaseKnowledgeService.getChunkCount(),
+                databaseKnowledgeService.getFileCount(),
+                databaseKnowledgeService.getFileList(),
+                databaseKnowledgeService.getMetadataList()
+        );
+    }
+
+    @PostMapping("/database/knowledge/sync")
+    public Map<String, Object> syncDatabaseKnowledge() {
+        databaseKnowledgeService.syncKnowledgeBase();
+        return Map.of(
+                "success", true,
+                "chunkCount", databaseKnowledgeService.getChunkCount(),
+                "fileCount", databaseKnowledgeService.getFileCount()
         );
     }
 
@@ -134,6 +162,33 @@ public class AesController {
 
         PrintWriter writer = response.getWriter();
         homeworkService.gradeHomeworkStream(file, category, writer);
+        writer.close();
+    }
+
+    // ================================================================
+    // 数据库作业文档批改
+    // ================================================================
+
+    @PostMapping("/database/homework/grade")
+    public Dto.DatabaseHomeworkResult gradeDatabaseHomework(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(defaultValue = "general") String category) {
+        return databaseHomeworkService.gradeHomework(file, category);
+    }
+
+    @PostMapping("/database/homework/grade/stream")
+    public void gradeDatabaseHomeworkStream(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(defaultValue = "general") String category,
+            HttpServletResponse response) throws Exception {
+
+        response.setContentType("text/event-stream");
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("Cache-Control", "no-cache");
+        response.setHeader("Connection", "keep-alive");
+
+        PrintWriter writer = response.getWriter();
+        databaseHomeworkService.gradeHomeworkStream(file, category, writer);
         writer.close();
     }
 }

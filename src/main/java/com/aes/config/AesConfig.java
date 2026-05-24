@@ -38,6 +38,9 @@ public class AesConfig {
     @Value("${chroma.collection.name:aes-knowledge}")
     private String chromaCollectionName;
 
+    @Value("${chroma.database.collection.name:aes-database-knowledge}")
+    private String databaseChromaCollectionName;
+
     @Bean
     public ChatLanguageModel chatModel() {
         return OpenAiChatModel.builder()
@@ -68,13 +71,22 @@ public class AesConfig {
     @Bean
     public EmbeddingStore<TextSegment> embeddingStore() {
         // 优先尝试 Chroma 本地向量库，不可用时自动回退到内存向量库
+        return createEmbeddingStore(chromaCollectionName);
+    }
+
+    @Bean
+    public EmbeddingStore<TextSegment> databaseEmbeddingStore() {
+        return createEmbeddingStore(databaseChromaCollectionName);
+    }
+
+    private EmbeddingStore<TextSegment> createEmbeddingStore(String collectionName) {
         try {
             log.info("尝试连接 Chroma 向量库: {}", chromaBaseUrl);
             ChromaEmbeddingStore store = ChromaEmbeddingStore.builder()
                     .baseUrl(chromaBaseUrl)
-                    .collectionName(chromaCollectionName)
+                    .collectionName(collectionName)
                     .build();
-            log.info("Chroma 向量库连接成功, collection: {}", chromaCollectionName);
+            log.info("Chroma 向量库连接成功, collection: {}", collectionName);
             return store;
         } catch (Exception e) {
             log.warn("Chroma 连接失败 ({}), 回退到 InMemoryEmbeddingStore", e.getMessage());

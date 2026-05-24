@@ -1,12 +1,12 @@
-# Java 作业智能批改系统
+# Java 与数据库作业智能批改系统
 
-基于 **LangChain4j + Spring Boot + RAG** 的智能化 Java 作业批改系统。支持上传 Word 作业文档，自动提取多道编程题的题目要求与学生代码，结合知识库中的评分标准，利用大语言模型进行逐题批改与综合评分。
+基于 **LangChain4j + Spring Boot + RAG** 的智能化作业批改系统。支持上传 Word 作业文档，自动提取多道 Java 编程题或数据库 SQL 题，结合各自独立知识库中的评分标准，利用大语言模型进行逐题批改与综合评分。
 
 ---
 
 ## 一、系统简介
 
-本系统面向 Java 程序设计课程的教学辅助场景，帮助教师快速批改学生提交的作业文档。系统通过 RAG（检索增强生成）技术，自动从知识库中检索对应的评分标准，结合大语言模型对每道编程题进行多维度评分。
+本系统面向 Java 程序设计与数据库课程的教学辅助场景，帮助教师快速批改学生提交的作业文档。系统通过 RAG（检索增强生成）技术，自动从独立知识库中检索对应评分标准，结合大语言模型对每道题进行多维度评分。
 
 ### 核心能力
 
@@ -14,6 +14,8 @@
 - **题意符合性检查** — 判断代码是否满足题目要求，功能是否完整
 - **RAG 增强评分** — 自动检索评分标准和参考范例，评分有据可依
 - **多维度评价** — 是否符合题意（30）+ 代码规范（20）+ 逻辑正确性（20）+ 性能效率（15）+ 可维护性（15），百分制
+- **数据库作业批改** — 自动提取 SQL，使用 H2 内存库的 MySQL 兼容模式执行验证，结合执行证据评分
+- **知识库隔离** — Java 知识库与数据库知识库分别管理，避免评分标准混用
 - **流式输出 (SSE)** — 实时显示每道题的批改过程
 - **透明可解释** — 展示检索到的原始文档片段，评分依据一目了然
 
@@ -27,6 +29,7 @@
 | Embedding | BGE-small-zh | 本地 ONNX 运行，中文优化，首次约下载 100MB |
 | 向量库 | Chroma / InMemory | 优先 Chroma，不可用时自动降级 |
 | 文档解析 | PDFBox + Tika | 支持 PDF、DOCX、TXT |
+| SQL 执行 | H2 Database | 内存数据库，MySQL 兼容模式 |
 | 前端 | 纯 HTML/CSS/JS | SSE + Fetch API，零依赖 |
 
 ---
@@ -224,11 +227,13 @@ deepseek.model.name=deepseek-chat
 # ==========================================
 chroma.base.url=http://localhost:8000
 chroma.collection.name=aes-knowledge
+chroma.database.collection.name=aes-database-knowledge
 
 # ==========================================
 # 可选：知识库路径
 # ==========================================
 aes.knowledge-base.path=data/knowledge_base
+aes.database.knowledge-base.path=data/database_knowledge_base
 
 # ==========================================
 # 可选：服务端口
@@ -396,6 +401,10 @@ curl -X POST http://localhost:8080/api/homework/grade \
 | `GET/POST` | `/api/score/stream` | 单代码流式评分 SSE |
 | `POST` | `/api/homework/grade` | 作业文档同步批改（multipart） |
 | `POST` | `/api/homework/grade/stream` | 作业文档流式批改 SSE（逐题推送） |
+| `GET` | `/api/database/knowledge/stats` | 数据库知识库状态 |
+| `POST` | `/api/database/knowledge/sync` | 重建数据库知识库索引 |
+| `POST` | `/api/database/homework/grade` | 数据库作业文档同步批改（multipart） |
+| `POST` | `/api/database/homework/grade/stream` | 数据库作业文档流式批改 SSE（逐题推送） |
 
 ### 请求示例
 
