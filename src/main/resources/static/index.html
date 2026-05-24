@@ -684,41 +684,12 @@ select:focus {
     </div>
 
     <div class="tabs">
-        <button class="tab active" onclick="switchTab('single')">单代码评估</button>
-        <button class="tab" onclick="switchTab('homework')">作业文档批改</button>
+        <button class="tab active" onclick="switchTab('homework')">作业文档批改</button>
         <button class="tab" onclick="switchTab('database')">数据库作业批改</button>
     </div>
 
-    <!-- ========== 单代码评估 ========== -->
-    <div id="tab-single" class="tab-content active">
-        <h2>代码提交</h2>
-        <textarea id="codeInput" rows="16" placeholder="在此粘贴要评估的 Java 代码..."></textarea>
-        <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
-            <span style="font-size:.8rem;color:var(--muted)">或上传 .java 文件：</span>
-            <input type="file" id="fileUpload" accept=".java,.txt" onchange="handleFileUpload(event)" style="font-size:.8rem;">
-        </div>
-        <button class="btn btn-primary" id="scoreBtn" onclick="startEvaluation()" style="margin-top:16px;">
-            开始评估
-        </button>
-
-        <div id="streamArea" style="display:none;">
-            <h3 style="margin-top:16px;">AI 评估报告</h3>
-            <div class="stream-raw" id="streamRaw"></div>
-        </div>
-
-        <div id="finalArea" style="display:none;">
-            <div id="scoreOverview" class="score-overview"></div>
-            <div id="mdContent" class="md-content"></div>
-        </div>
-
-        <div id="sourcesArea" style="display:none;">
-            <h3 style="margin-top:20px;">检索到的上下文（RAG 源文档）</h3>
-            <div class="sources-box" id="sourcesContent"></div>
-        </div>
-    </div>
-
     <!-- ========== 作业文档批改 ========== -->
-    <div id="tab-homework" class="tab-content">
+    <div id="tab-homework" class="tab-content active">
         <h2>上传作业文档</h2>
         <div class="upload-area" id="uploadArea" onclick="document.getElementById('homeworkFile').click()">
             <div style="font-size:1.7rem;margin-bottom:8px;">DOCX</div>
@@ -805,158 +776,12 @@ function renderMarkdown(text) {
         escapeHtml(text) + '</pre>';
 }
 
-// ================================================================
-// 单代码评估：Score extraction
-// ================================================================
-const DIMS = [
-    { key:'style', label:'代码规范', max:25, re:/代码规范|命名|格式|style/i },
-    { key:'logic', label:'逻辑正确性', max:25, re:/逻辑正确|业务逻辑|边界|logic/i },
-    { key:'perf',  label:'性能与效率', max:25, re:/性能|效率|算法复杂|资源|perform/i },
-    { key:'maint', label:'可维护性', max:25, re:/可维护|设计模式|解耦|测试|maintain/i },
-];
-
-function parseScores(text) {
-    const sc = {}, cm = {};
-    for (const line of text.split('\n')) {
-        const cells = line.split('|').map(c => c.trim()).filter(Boolean);
-        if (cells.length < 3) continue;
-        const score = parseInt(cells[2]);
-        const max = parseInt(cells[1]);
-        if (isNaN(score)) continue;
-        for (const d of DIMS) {
-            if (d.re.test(cells[0])) { sc[d.key] = score; cm[d.key] = cells[3] || ''; break; }
-        }
-    }
-    return { scores: sc, comments: cm };
-}
-
-function buildScoreCards(text) {
-    const { scores, comments } = parseScores(text);
-    if (!Object.keys(scores).length) return '';
-    const total = Object.values(scores).reduce((a,b) => a + b, 0);
-    const pct = total / 100 * 100;
-    const cl = pct >= 80 ? 'high' : pct >= 60 ? 'good' : pct >= 40 ? 'mid' : 'low';
-    let h = `
-    <div class="score-overview">
-        <div class="total-card">
-            <div><div class="total-label">综合评分</div><div style="font-size:.85rem;opacity:.8">满分 100 分</div></div>
-            <div style="text-align:right"><div class="total-score">${total}</div><div class="total-max">/ 100</div></div>
-        </div>
-        <div class="score-grid">`;
-    for (const d of DIMS) {
-        const s = scores[d.key];
-        if (s === undefined) continue;
-        const dpct = s / d.max * 100;
-        const dcl = dpct >= 80 ? 'high' : dpct >= 60 ? 'good' : dpct >= 40 ? 'mid' : 'low';
-        h += `
-        <div class="score-card ${dcl}">
-            <div class="dim-label">${d.label}（满分 ${d.max}）</div>
-            <div class="dim-score">${s}<span class="max">/ ${d.max}</span></div>
-            ${comments[d.key] ? `<div class="dim-comment">${comments[d.key]}</div>` : ''}
-            <div class="pbar"><div class="pbar-fill ${dcl}" style="width:${dpct}%"></div></div>
-        </div>`;
-    }
-    h += '</div></div>';
-    return h;
-}
-
 function injectBadges(html) {
     html = html.replace(/\b(SQL\s*注入|XSS|CSRF|安全漏洞|内存泄漏|死锁|数据丢失|性能灾难|严重违标)\b/g,
         '<span class="badge badge-red">$1</span>');
     html = html.replace(/\b(建议优化|建议修改|需要改进|考虑重构|存在风险)\b/g,
         '<span class="badge badge-orange">$1</span>');
     return html;
-}
-
-// ================================================================
-// 单代码评估流程
-// ================================================================
-let fullText = '';
-
-function startEvaluation() {
-    const code = document.getElementById('codeInput').value.trim();
-    if (!code) { alert('请先输入或上传 Java 代码'); return; }
-
-    const btn = document.getElementById('scoreBtn');
-    const streamArea = document.getElementById('streamArea');
-    const streamRaw = document.getElementById('streamRaw');
-    const finalArea = document.getElementById('finalArea');
-    const scoreOverview = document.getElementById('scoreOverview');
-    const mdContent = document.getElementById('mdContent');
-    const sourcesEl = document.getElementById('sourcesContent');
-
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> AI 正在分析...';
-    streamArea.style.display = 'block';
-    streamRaw.textContent = '';
-    finalArea.style.display = 'none';
-    scoreOverview.innerHTML = '';
-    mdContent.innerHTML = '';
-    sourcesEl.innerHTML = '';
-    fullText = '';
-
-    fetch('/api/score/stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: code, category: document.getElementById('category').value }),
-    }).then(response => {
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-
-        function pump() {
-            reader.read().then(({ done, value }) => {
-                if (done) {
-                    btn.disabled = false;
-                    btn.innerHTML = '开始评估';
-                    streamArea.style.display = 'none';
-                    finalArea.style.display = 'block';
-                    let body = fullText.replace(/###\s*二[、,]\s*分维度评分[\s\S]*?(?=\n###\s|$)/, '');
-                    scoreOverview.innerHTML = buildScoreCards(fullText);
-                    mdContent.innerHTML = injectBadges(renderMarkdown(body));
-                    return;
-                }
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || '';
-
-                let currentEvent = 'message';
-                let dataLines = [];
-
-                function flushEvent() {
-                    if (dataLines.length === 0) return;
-                    const eventData = dataLines.join('\n');
-                    dataLines = [];
-                    if (currentEvent === 'sources') {
-                        try {
-                            const s = JSON.parse(eventData);
-                            sourcesEl.innerHTML = s.map(x =>
-                                `<div class="source-item"><strong>${x.type==='standard'?'评估标准':'参考范例'}</strong> | ${x.source}<br><span style="color:#64748b">${x.text}</span></div>`
-                            ).join('');
-                            if (document.getElementById('showContext').checked)
-                                document.getElementById('sourcesArea').style.display = 'block';
-                        } catch(e) {}
-                    } else if (currentEvent !== 'done') {
-                        fullText += eventData;
-                    }
-                }
-
-                for (const line of lines) {
-                    if (line === '') { flushEvent(); currentEvent = 'message'; continue; }
-                    if (line.startsWith('event: ')) { currentEvent = line.slice(7).trim(); continue; }
-                    if (line.startsWith('data: ')) { dataLines.push(line.slice(6)); continue; }
-                }
-                if (fullText) { streamRaw.textContent = fullText; streamRaw.scrollTop = streamRaw.scrollHeight; }
-                pump();
-            });
-        }
-        pump();
-    }).catch(err => {
-        streamRaw.textContent = '评估失败: ' + err.message;
-        btn.disabled = false;
-        btn.innerHTML = '开始评估';
-    });
 }
 
 // ================================================================
@@ -1399,7 +1224,6 @@ function renderDatabaseSources(allSources) {
 // ================================================================
 function toggleContext() {
     const checked = document.getElementById('showContext').checked;
-    document.getElementById('sourcesArea').style.display = checked ? 'block' : 'none';
     document.getElementById('hwSourcesArea').style.display = checked ? 'block' : 'none';
     document.getElementById('dbHwSourcesArea').style.display = checked ? 'block' : 'none';
 }
@@ -1458,14 +1282,6 @@ async function syncDatabaseKnowledge() {
     try { await fetch('/api/database/knowledge/sync', { method: 'POST' }); btn.textContent = '同步完成'; await loadDatabaseStats(); }
     catch(e) { btn.textContent = '同步失败'; }
     finally { setTimeout(() => { btn.disabled = false; btn.textContent = '同步数据库知识库'; }, 2000); }
-}
-
-function handleFileUpload(e) {
-    const f = e.target.files[0];
-    if (!f) return;
-    const r = new FileReader();
-    r.onload = ev => { document.getElementById('codeInput').value = ev.target.result; };
-    r.readAsText(f, 'UTF-8');
 }
 
 loadStats();

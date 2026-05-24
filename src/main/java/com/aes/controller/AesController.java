@@ -6,7 +6,6 @@ import com.aes.service.DatabaseKnowledgeService;
 import com.aes.service.DocumentParserService;
 import com.aes.service.HomeworkService;
 import com.aes.service.KnowledgeService;
-import com.aes.service.ScoringService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -19,20 +18,17 @@ import java.util.Map;
 public class AesController {
 
     private final KnowledgeService knowledgeService;
-    private final ScoringService scoringService;
     private final DocumentParserService documentParserService;
     private final HomeworkService homeworkService;
     private final DatabaseKnowledgeService databaseKnowledgeService;
     private final DatabaseHomeworkService databaseHomeworkService;
 
     public AesController(KnowledgeService knowledgeService,
-                         ScoringService scoringService,
                          DocumentParserService documentParserService,
                          HomeworkService homeworkService,
                          DatabaseKnowledgeService databaseKnowledgeService,
                          DatabaseHomeworkService databaseHomeworkService) {
         this.knowledgeService = knowledgeService;
-        this.scoringService = scoringService;
         this.documentParserService = documentParserService;
         this.homeworkService = homeworkService;
         this.databaseKnowledgeService = databaseKnowledgeService;
@@ -80,56 +76,6 @@ public class AesController {
                 "chunkCount", databaseKnowledgeService.getChunkCount(),
                 "fileCount", databaseKnowledgeService.getFileCount()
         );
-    }
-
-    // ================================================================
-    // 单代码评分
-    // ================================================================
-    @PostMapping("/score")
-    public Map<String, Object> score(@RequestBody Dto.ScoreRequest request) {
-        var ctx = scoringService.scoreSync(
-                request.getContent(),
-                request.getCategory()
-        );
-        return Map.of(
-                "context", ctx.context(),
-                "sources", ctx.sources()
-        );
-    }
-
-    @GetMapping("/score/stream")
-    public void scoreStream(
-            @RequestParam String content,
-            @RequestParam(defaultValue = "general") String category,
-            HttpServletResponse response) throws Exception {
-
-        response.setContentType("text/event-stream");
-        response.setCharacterEncoding("UTF-8");
-        response.setHeader("Cache-Control", "no-cache");
-        response.setHeader("Connection", "keep-alive");
-
-        PrintWriter writer = response.getWriter();
-        scoringService.scoreStream(content, category, writer);
-        writer.close();
-    }
-
-    @PostMapping("/score/stream")
-    public void scoreStreamPost(
-            @RequestBody Dto.ScoreRequest request,
-            HttpServletResponse response) throws Exception {
-
-        response.setContentType("text/event-stream");
-        response.setCharacterEncoding("UTF-8");
-        response.setHeader("Cache-Control", "no-cache");
-        response.setHeader("Connection", "keep-alive");
-
-        PrintWriter writer = response.getWriter();
-        scoringService.scoreStream(
-                request.getContent(),
-                request.getCategory(),
-                writer
-        );
-        writer.close();
     }
 
     // ================================================================

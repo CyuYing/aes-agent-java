@@ -1,0 +1,74 @@
+Java 作业参考范例：构造方法重载、实例成员与静态成员
+
+文档格式参考 JV-作业样本：包含作业头信息、题号、题目要求和“答：”后的学生代码。批改系统可从此类文档中提取题目说明与代码。
+
+JV作业
+作业号
+作业三
+班级
+计算机基础班
+姓名
+李四
+学号
+j2026001
+
+【第1题】编写程序，定义一个图书类 Book。类中包含实例变量 title、author、price，类变量 libraryName；提供两个构造方法完成重载；提供实例方法 showInfo() 和 showInfo(boolean showPrice) 完成重载；提供类方法 showLibraryName() 和 setLibraryName(String name)。设计测试类完成对象创建、实例方法调用、类变量访问和类方法调用。要求体现封装、构造方法重载、实例方法重载和类方法调用。
+
+答：
+class Book {
+    private String title;
+    private String author;
+    private double price;
+    private static String libraryName = "学校图书馆";
+
+    public Book(String title, String author) {
+        this(title, author, 0.0);
+    }
+
+    public Book(String title, String author, double price) {
+        this.title = title;
+        this.author = author;
+        this.price = price;
+    }
+
+    public void showInfo() {
+        System.out.println("书名：" + title + "，作者：" + author);
+    }
+
+    public void showInfo(boolean showPrice) {
+        showInfo();
+        if (showPrice) {
+            System.out.println("价格：" + price);
+        }
+    }
+
+    public static void showLibraryName() {
+        System.out.println("所属图书馆：" + libraryName);
+    }
+
+    public static void setLibraryName(String name) {
+        if (name != null && !name.isBlank()) {
+            libraryName = name;
+        }
+    }
+}
+
+public class TestBook {
+    public static void main(String[] args) {
+        Book.showLibraryName();
+        Book book1 = new Book("Java 程序设计", "张老师");
+        book1.showInfo();
+
+        Book.setLibraryName("计算机学院资料室");
+        Book book2 = new Book("数据库系统概论", "王老师", 68.5);
+        book2.showInfo(true);
+        Book.showLibraryName();
+    }
+}
+
+范例评分要点：
+1. Book 类能表达图书实体，字段封装为 private。
+2. 构造方法通过 this(...) 复用初始化逻辑，体现重载。
+3. showInfo 方法参数列表不同，符合方法重载规则。
+4. libraryName 是类级共享状态，使用 static 方法访问和修改。
+5. 测试类 main 方法覆盖构造方法、实例方法、类方法和类变量变化。

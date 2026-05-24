@@ -52,7 +52,7 @@
 
 页面分为左右两栏：
 - **左侧边栏**：知识库管理、评估类型选择、检索上下文显示开关
-- **右侧主区域**：两个功能 Tab ——「单代码评估」和「作业文档批改」
+- **右侧主区域**：两个功能 Tab ——「作业文档批改」和「数据库作业批改」
 
 ![image-20260516004326397](C:\Users\26594\AppData\Roaming\Typora\typora-user-images\image-20260516004326397.png)
 
@@ -60,59 +60,34 @@
 
 ### 3.2 知识库管理
 
-知识库用于存放 Java 作业的评分标准、编码规范、参考范例等文档。批改时会自动从中检索相关标准进行对照评分。
+知识库分为 Java 知识库和数据库知识库，分别用于存放对应课程的评分标准、原理说明、参考范例和作业样例。批改时会自动从对应知识库中检索相关标准进行对照评分，避免 Java 与数据库评分依据混用。
 
 #### 步骤 1：放入评分标准文档
 
-将 Java 作业评分标准文档（支持 `.pdf`、`.docx`、`.txt`）复制到项目目录的 `data/knowledge_base/` 文件夹下。
+将 Java 作业评分标准文档（支持 `.pdf`、`.docx`、`.txt`）复制到项目目录的 `data/knowledge_base/` 文件夹下；将数据库作业评分标准文档复制到 `data/database_knowledge_base/` 文件夹下。
 
 建议按以下格式命名文件名，系统会自动提取元数据：
 
 ```
 Java编码规范_代码风格_Java17.docx
 Java作业评分标准_构造方法重载_Java17.txt
+数据库原理评分标准_SQL作业.txt
+数据库参考范例_学生选课查询_SQL.txt
 ```
 
 #### 步骤 2：同步知识库
 
-点击左侧边栏的 **「🔄 同步知识库」** 按钮，系统会自动加载文档、分块、向量化并建立索引。
+点击左侧边栏的 **「同步 Java 知识库」** 或 **「同步数据库知识库」** 按钮，系统会自动加载文档、分块、向量化并建立索引。
 
 ![image-20260516004612222](C:\Users\26594\AppData\Roaming\Typora\typora-user-images\image-20260516004612222.png)
 
 同步完成后，左侧会显示已索引的片段数和文件列表。
 
-> **提示**：如需更新评分标准，直接替换或新增 `data/knowledge_base/` 中的文件，然后重新点击同步即可。
+> **提示**：如需更新评分标准，直接替换或新增对应知识库目录中的文件，然后重新点击同步即可。
 
 ---
 
-### 3.3 单代码评估
-
-适用于快速评估一段独立的 Java 代码，无需上传文档。
-
-#### 操作步骤
-
-1. 切换到 **「单代码评估」** Tab
-2. 在文本框中粘贴要评估的 Java 代码
-3. （可选）在左侧选择评估类型（通用评估、代码规范、算法与数据结构等）
-4. 点击 **「🔍 开始评估」** 按钮
-
-![image-20260516004809862](C:\Users\26594\AppData\Roaming\Typora\typora-user-images\image-20260516004809862.png)
-
-#### 查看结果
-
-系统会流式显示 AI 的评估过程，完成后展示结构化评分结果：
-
-- **总分卡片**：显示综合评分（满分 100）
-- **分维度评分卡片**：代码规范、逻辑正确性、性能与效率、可维护性，各维度带进度条
-- **详细评语**：Markdown 格式，包含总体评价、逐条问题、改进建议
-
-![image-20260516004757108](C:\Users\26594\AppData\Roaming\Typora\typora-user-images\image-20260516004757108.png)
-
-勾选左侧 **「显示检索上下文」**，可在评语下方查看系统从知识库中检索到的评分标准原文：
-
----
-
-### 3.4 作业文档批改
+### 3.3 Java 作业文档批改
 
 适用于批量批改学生提交的 Word 作业文档（含多道编程题）。
 
@@ -124,11 +99,26 @@ Java作业评分标准_构造方法重载_Java17.txt
 <img src="C:\Users\26594\AppData\Roaming\Typora\typora-user-images\image-20260516004848236.png" alt="image-20260516004848236" style="zoom:67%;" />
 
 3. （可选）在左侧选择评估类型
-4. 点击 **「🔍 开始批改」** 按钮
+4. 点击 **「开始批改」** 按钮
 
 系统会自动解析文档、提取题目和代码，逐题调用 AI 进行批改：
 
 > **支持的文档格式**：系统通过正则识别 `【第2题】`、`第1题`、`1.`、`一、` 等常见题号格式切分题目。如果文档中没有明确题号，会将整个文档作为一道题进行批改。
+
+---
+
+### 3.4 数据库作业文档批改
+
+适用于批量批改数据库 SQL 作业文档。文档建议包含题目要求、初始化 SQL 和学生 SQL。
+
+#### 操作步骤
+
+1. 切换到 **「数据库作业批改」** Tab
+2. 上传 `.docx` 数据库作业文档
+3. （可选）在左侧选择评估类型
+4. 点击 **「开始批改数据库作业」** 按钮
+
+系统会自动解析 SQL、使用 H2 内存数据库的 MySQL 兼容模式执行验证，并把执行结果作为评分证据传给 AI。
 
 ---
 
@@ -334,27 +324,29 @@ Chroma 连接失败, 回退到 InMemoryEmbeddingStore
 
 1. **准备评分标准文档**
    
-   将 Java 作业评分标准、参考范例等文档放入 `data/knowledge_base/` 目录。支持格式：`.pdf`、`.docx`、`.txt`。
+   Java 作业评分标准、参考范例放入 `data/knowledge_base/`；数据库原理与 SQL 作业评分标准、参考范例放入 `data/database_knowledge_base/`。两套知识库路径和向量集合相互独立，避免 Java 与数据库检索上下文混用。支持格式：`.pdf`、`.docx`、`.txt`。
    
    建议命名格式（系统自动提取元数据）：
    ```
-   Java编码规范_代码风格_Java17.docx
-   Java作业评分标准_构造方法重载_Java17.txt
+   Java原理评分标准_作业批改_Java17.txt
+   数据库原理评分标准_SQL作业.txt
    ```
 
 2. **同步知识库**
 
-   方式一：前端页面左侧点击 **「🔄 同步知识库」**
+   前端左侧可分别点击 **「同步 Java 知识库」** 与 **「同步数据库知识库」**。
    
-   方式二：调用 API：
+   也可以调用 API：
    ```bash
    curl -X POST http://localhost:8080/api/knowledge/sync
+   curl -X POST http://localhost:8080/api/database/knowledge/sync
    ```
 
 3. **验证知识库**
 
    ```bash
    curl http://localhost:8080/api/knowledge/stats
+   curl http://localhost:8080/api/database/knowledge/stats
    ```
    
    正常应返回非零的 `chunkCount` 和 `fileCount`：
@@ -366,18 +358,7 @@ Chroma 连接失败, 回退到 InMemoryEmbeddingStore
 
 ### 4.8 功能验证
 
-#### 单代码评估测试
-
-打开 `http://localhost:8080`，切换到「单代码评估」Tab，粘贴 Java 代码，点击「开始评估」。
-
-或调用 API：
-```bash
-curl -X POST http://localhost:8080/api/score \
-  -H "Content-Type: application/json" \
-  -d '{"content":"public class Hello { public static void main(String[] args) { System.out.println(\"Hello\"); } }","category":"general"}'
-```
-
-#### 作业文档批改测试
+#### Java 作业文档批改测试
 
 切换到「作业文档批改」Tab，上传 `.docx` 作业文档，点击「开始批改」。
 
@@ -386,6 +367,17 @@ curl -X POST http://localhost:8080/api/score \
 curl -X POST http://localhost:8080/api/homework/grade \
   -F "file=@作业样本.docx" \
   -F "category=general"
+```
+
+#### 数据库作业文档批改测试
+
+切换到「数据库作业批改」Tab，上传包含题目、初始化 SQL 和学生 SQL 的 `.docx` 作业文档，点击「开始批改」。系统会为每道题创建独立 H2 内存数据库执行 SQL，并在结果中展示执行证据。
+
+或调用 API：
+```bash
+curl -X POST http://localhost:8080/api/database/homework/grade \
+  -F "file=@数据库作业样本.docx" \
+  -F "category=database"
 ```
 
 ---
@@ -397,8 +389,6 @@ curl -X POST http://localhost:8080/api/homework/grade \
 | `GET` | `/` | 前端页面 |
 | `GET` | `/api/knowledge/stats` | 知识库状态 |
 | `POST` | `/api/knowledge/sync` | 重建知识库索引 |
-| `POST` | `/api/score` | 单代码同步评分 |
-| `GET/POST` | `/api/score/stream` | 单代码流式评分 SSE |
 | `POST` | `/api/homework/grade` | 作业文档同步批改（multipart） |
 | `POST` | `/api/homework/grade/stream` | 作业文档流式批改 SSE（逐题推送） |
 | `GET` | `/api/database/knowledge/stats` | 数据库知识库状态 |
@@ -409,15 +399,15 @@ curl -X POST http://localhost:8080/api/homework/grade \
 ### 请求示例
 
 ```bash
-# 单代码评分
-curl -X POST http://localhost:8080/api/score \
-  -H "Content-Type: application/json" \
-  -d '{"content":"public class Hello { ... }","category":"general"}'
-
-# 作业文档批改
+# Java 作业文档批改
 curl -X POST http://localhost:8080/api/homework/grade \
   -F "file=@作业.docx" \
   -F "category=algorithm"
+
+# 数据库作业文档批改
+curl -X POST http://localhost:8080/api/database/homework/grade \
+  -F "file=@数据库作业.docx" \
+  -F "category=database"
 ```
 
 ---
@@ -429,17 +419,17 @@ curl -X POST http://localhost:8080/api/homework/grade \
 文件名自动提取元数据，建议按以下格式命名：
 
 ```
-{类型}_{主题}_{Java版本}.pdf
+{学科}_{类型}_{主题}.txt
 ```
 
-示例：`Java编码规范_代码风格_Java17.docx`
+示例：`Java原理评分标准_作业批改_Java17.txt`、`数据库参考范例_学生选课查询_SQL.txt`
 
 自动提取的元数据字段：
 
 | 字段 | 说明 | 示例值 |
 |------|------|------|
 | `type` | 文档类型 | `standard`（评分标准）、`reference`（参考范例） |
-| `category` | 技术类别 | `code-style`、`algorithm`、`design`、`performance`、`testing`、`security` |
+| `category` | 技术类别 | `java-basics`、`oop`、`sql-query`、`schema-design`、`transaction`、`security` |
 | `java` | Java 版本 | `8`、`11`、`17`、`21` |
 
 ---
@@ -493,20 +483,22 @@ kill -9 <PID>
 用户上传 Word 作业文档
     │
     ▼
-DocumentParserService.parseDocx()
+DocumentParserService / DatabaseDocumentParserService
     │  ├─ Tika 提取全文
-    │  └─ 正则切分 → List<QuestionEntry>（题目 + 代码）
+    │  ├─ Java：切分题目与代码
+    │  └─ 数据库：切分题目、初始化 SQL、学生 SQL
     │
     ▼
-HomeworkService.gradeHomework()
+HomeworkService / DatabaseHomeworkService
     │  ├─ 对每道题：
-    │  │   ├─ KnowledgeService.retrieve() → RAG 检索评分标准
-    │  │   ├─ 构建 Prompt（题目要求 + 学生代码 + RAG 上下文）
+    │  │   ├─ Java：检索 Java 知识库，构建题目 + 学生代码评分上下文
+    │  │   ├─ 数据库：先用 H2 MySQL 模式执行 SQL，收集执行证据
+    │  │   ├─ 检索对应学科知识库，构建 Prompt
     │  │   └─ DeepSeek Chat API → JSON 结构化评分结果
-    │  └─ 汇总所有题目得分 → HomeworkResult
+    │  └─ 汇总所有题目得分 → HomeworkResult / DatabaseHomeworkResult
     │
     ▼
-前端展示：总分卡片 + 逐题展开详情 + RAG 来源
+前端展示：总分卡片 + 逐题详情 + SQL 执行证据 + RAG 来源
 ```
 
 ---
@@ -518,7 +510,8 @@ aes-agent-java/
 ├── pom.xml                                    # Maven 项目配置
 ├── README.md
 ├── data/
-│   └── knowledge_base/                        # 知识库文档（评分标准 / 参考范例）
+│   ├── knowledge_base/                        # Java 知识库文档（评分标准 / 参考范例）
+│   └── database_knowledge_base/               # 数据库知识库文档（评分标准 / 参考范例）
 └── src/
     └── main/
         ├── java/com/aes/
@@ -526,18 +519,21 @@ aes-agent-java/
         │   ├── config/
         │   │   └── AesConfig.java             # Bean 配置（LLM / Embedding / 向量库）
         │   ├── controller/
-        │   │   └── AesController.java         # REST API（评分 + 作业批改 + 知识库）
+        │   │   └── AesController.java         # REST API（Java/数据库作业批改 + 知识库）
         │   ├── model/
         │   │   └── Dto.java                   # 所有 DTO / Record
         │   └── service/
-        │       ├── KnowledgeService.java      # 知识库管理（加载/分块/向量化/检索）
-        │       ├── ScoringService.java        # 单代码评分引擎（含 Prompt）
-        │       ├── DocumentParserService.java # Word 文档解析（提取题目+代码）
-        │       └── HomeworkService.java       # 作业批改工作流（解析→RAG→LLM→汇总）
+        │       ├── KnowledgeService.java      # Java 知识库管理（加载/分块/向量化/检索）
+        │       ├── DatabaseKnowledgeService.java
+        │       ├── DocumentParserService.java
+        │       ├── DatabaseDocumentParserService.java
+        │       ├── DatabaseExecutionService.java
+        │       ├── HomeworkService.java
+        │       └── DatabaseHomeworkService.java
         └── resources/
             ├── application.properties          # 应用配置
             └── static/
-                └── index.html                  # 前端 UI（单页，双模式）
+                └── index.html                  # 前端 UI（Java/数据库作业批改）
 ```
 
 ---
@@ -545,6 +541,6 @@ aes-agent-java/
 ## 十、注意事项
 
 - 首次启动会下载 BGE-small-zh 模型（约 100MB），需等待 1-2 分钟
-- 知识库数据位于项目 `data/knowledge_base/` 目录，放入评分标准文档后需点击同步
-- 当前作业批改基于 LLM 静态分析，不实际编译运行学生代码；教学辅助场景下建议配合人工复核
+- Java 知识库位于 `data/knowledge_base/`，数据库知识库位于 `data/database_knowledge_base/`，放入评分标准文档后需分别点击同步
+- Java 作业批改基于 LLM 静态分析；数据库作业会先在 H2 内存库的 MySQL 兼容模式执行 SQL，再结合执行证据与 RAG 上下文评分
 - AI 评分结果仅供教学参考，不作为正式考试成绩

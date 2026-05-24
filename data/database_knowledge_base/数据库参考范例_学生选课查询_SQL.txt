@@ -1,0 +1,113 @@
+数据库作业参考范例：学生选课查询与统计
+
+数据库作业
+作业号
+数据库作业一
+班级
+数据科学基础班
+姓名
+王五
+学号
+db2026001
+
+第1题 查询高分课程
+给定学生、课程、选课成绩三张表，查询成绩大于等于 85 分的学生姓名、课程名称和成绩，结果按成绩从高到低排序。
+
+初始化 SQL
+```sql
+CREATE TABLE student (
+    id INT PRIMARY KEY,
+    name VARCHAR(30) NOT NULL,
+    class_name VARCHAR(30) NOT NULL
+);
+
+CREATE TABLE course (
+    id INT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    credit INT NOT NULL
+);
+
+CREATE TABLE score (
+    student_id INT NOT NULL,
+    course_id INT NOT NULL,
+    score INT NOT NULL,
+    PRIMARY KEY (student_id, course_id),
+    FOREIGN KEY (student_id) REFERENCES student(id),
+    FOREIGN KEY (course_id) REFERENCES course(id)
+);
+
+INSERT INTO student VALUES
+    (1, '张三', '计算机一班'),
+    (2, '李四', '计算机一班'),
+    (3, '王五', '软件二班');
+
+INSERT INTO course VALUES
+    (10, '数据库系统', 4),
+    (11, 'Java 程序设计', 3);
+
+INSERT INTO score VALUES
+    (1, 10, 92),
+    (1, 11, 81),
+    (2, 10, 76),
+    (3, 10, 88);
+```
+
+学生 SQL
+```sql
+SELECT
+    s.name AS student_name,
+    c.name AS course_name,
+    sc.score
+FROM score sc
+JOIN student s ON sc.student_id = s.id
+JOIN course c ON sc.course_id = c.id
+WHERE sc.score >= 85
+ORDER BY sc.score DESC;
+```
+
+第2题 统计每门课程平均分
+统计每门课程的选课人数和平均分，只显示选课人数不少于 2 人的课程，按平均分从高到低排序。
+
+初始化 SQL
+```sql
+CREATE TABLE course (
+    id INT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE score (
+    student_id INT NOT NULL,
+    course_id INT NOT NULL,
+    score INT NOT NULL
+);
+
+INSERT INTO course VALUES
+    (10, '数据库系统'),
+    (11, 'Java 程序设计');
+
+INSERT INTO score VALUES
+    (1, 10, 92),
+    (2, 10, 76),
+    (3, 10, 88),
+    (1, 11, 81);
+```
+
+学生 SQL
+```sql
+SELECT
+    c.name AS course_name,
+    COUNT(*) AS student_count,
+    AVG(sc.score) AS avg_score
+FROM course c
+JOIN score sc ON c.id = sc.course_id
+GROUP BY c.id, c.name
+HAVING COUNT(*) >= 2
+ORDER BY avg_score DESC;
+```
+
+范例评分要点：
+1. 使用显式 JOIN，并且连接条件完整。
+2. 查询字段与题目要求一致，别名清晰。
+3. WHERE 用于行过滤，HAVING 用于分组后的聚合条件。
+4. ORDER BY 满足题目排序要求。
+5. 初始化 SQL 能构造可复核的测试数据，学生 SQL 可在内存数据库中直接执行验证。

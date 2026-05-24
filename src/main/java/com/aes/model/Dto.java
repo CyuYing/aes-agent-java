@@ -11,33 +11,6 @@ public final class Dto {
     private Dto() {}
 
     // ================================================================
-    // 评分请求 / 响应
-    // ================================================================
-    public static class ScoreRequest {
-        private String content;
-        private String category = "general";
-
-        public String getContent() { return content; }
-        public void setContent(String content) { this.content = content; }
-
-        public String getCategory() { return category; }
-        public void setCategory(String category) { this.category = category; }
-    }
-
-    public static class ScoreResponse {
-        private String report;
-        private List<Map<String, String>> sources;
-
-        public ScoreResponse(String report, List<Map<String, String>> sources) {
-            this.report = report;
-            this.sources = sources;
-        }
-
-        public String getReport() { return report; }
-        public List<Map<String, String>> getSources() { return sources; }
-    }
-
-    // ================================================================
     // 知识库状态
     // ================================================================
     public static class KnowledgeStats {
