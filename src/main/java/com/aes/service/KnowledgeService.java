@@ -36,7 +36,7 @@ public class KnowledgeService {
     private final EmbeddingModel embeddingModel;
     private final EmbeddingStore<TextSegment> embeddingStore;
 
-    @Value("${aes.knowledge-base.path:data/knowledge_base}")
+    @Value("${aes.java.knowledge-base.path:${aes.knowledge-base.path:data/java_knowledge_base}}")
     private String knowledgeBasePath;
 
     private final Map<String, Map<String, String>> fileMetadataMap = new LinkedHashMap<>();

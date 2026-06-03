@@ -38,10 +38,6 @@
 
 ![系统首页与 Java 作业批改工作台](docs/images/aes-home-java-homework.png)
 
-![数据库作业批改工作台](docs/images/aes-database-homework.png)
-
-![Java 与数据库知识库分区状态](docs/images/aes-knowledge-panels.png)
-
 ---
 
 ## 三、使用说明
@@ -64,7 +60,7 @@
 
 #### 步骤 1：放入评分标准文档
 
-将 Java 作业评分标准文档（支持 `.pdf`、`.docx`、`.txt`）复制到项目目录的 `data/knowledge_base/` 文件夹下；将数据库作业评分标准文档复制到 `data/database_knowledge_base/` 文件夹下。
+将 Java 作业评分标准文档（支持 `.pdf`、`.docx`、`.txt`）复制到项目目录的 `data/java_knowledge_base/` 文件夹下；将数据库作业评分标准文档复制到 `data/database_knowledge_base/` 文件夹下。
 
 建议按以下格式命名文件名，系统会自动提取元数据：
 
@@ -79,7 +75,7 @@ Java作业评分标准_构造方法重载_Java17.txt
 
 点击左侧边栏的 **「同步 Java 知识库」** 或 **「同步数据库知识库」** 按钮，系统会自动加载文档、分块、向量化并建立索引。
 
-![Java 与数据库知识库分区状态](docs/images/aes-knowledge-panels.png)
+<img src="C:\Users\26594\AppData\Roaming\Typora\typora-user-images\image-20260524192002737.png" alt="image-20260524192002737" style="zoom:67%;" />
 
 同步完成后，左侧会显示已索引的片段数和文件列表。
 
@@ -96,7 +92,7 @@ Java作业评分标准_构造方法重载_Java17.txt
 1. 切换到 **「作业文档批改」** Tab
 2. 点击或拖拽上传学生的 `.docx` 作业文档
 
-![Java 作业文档上传入口](docs/images/aes-java-upload.png)
+![image-20260524192027359](C:\Users\26594\AppData\Roaming\Typora\typora-user-images\image-20260524192027359.png)
 
 3. （可选）在左侧选择评估类型
 4. 点击 **「开始批改」** 按钮
@@ -115,8 +111,7 @@ Java作业评分标准_构造方法重载_Java17.txt
 
 1. 切换到 **「数据库作业批改」** Tab
 2. 上传 `.docx` 数据库作业文档
-3. （可选）在左侧选择评估类型
-4. 点击 **「开始批改数据库作业」** 按钮
+3. 点击 **「开始批改数据库作业」** 按钮
 
 系统会自动解析 SQL、使用 H2 内存数据库的 MySQL 兼容模式执行验证，并把执行结果作为评分证据传给 AI。
 
@@ -131,8 +126,6 @@ Java作业评分标准_构造方法重载_Java17.txt
 顶部显示作业总分卡片，包含文件名称和总分：
 
 下图为当前实际运行的数据库作业批改工作台。上传并开始批改后，总分汇总、逐题详情、SQL 执行证据和 RAG 来源会在同一工作台下方展开。
-
-![数据库作业批改工作台](docs/images/aes-database-homework.png)
 
 #### 逐题详情
 
@@ -188,7 +181,7 @@ chroma --version
 
 ```bash
 # 克隆仓库（或下载源码压缩包解压）
-git clone <仓库地址> aes-agent-java
+git clone https://github.com/CyuYing/aes-agent-java.git aes-agent-java
 cd aes-agent-java
 ```
 
@@ -218,13 +211,13 @@ deepseek.model.name=deepseek-chat
 # 可选：Chroma 向量库
 # ==========================================
 chroma.base.url=http://localhost:8000
-chroma.collection.name=aes-knowledge
+chroma.java.collection.name=aes-java-knowledge
 chroma.database.collection.name=aes-database-knowledge
 
 # ==========================================
 # 可选：知识库路径
 # ==========================================
-aes.knowledge-base.path=data/knowledge_base
+aes.java.knowledge-base.path=data/java_knowledge_base
 aes.database.knowledge-base.path=data/database_knowledge_base
 
 # ==========================================
@@ -312,7 +305,7 @@ chroma run --path ./chroma-data
 
 Chroma 运行在 `http://localhost:8000`。应用启动时会自动尝试连接，成功日志示例：
 ```
-Chroma 向量库连接成功, collection: aes-knowledge
+Chroma 向量库连接成功, collection: aes-java-knowledge
 ```
 
 若连接失败，会自动降级为内存向量库，不影响核心功能：
@@ -326,7 +319,7 @@ Chroma 连接失败, 回退到 InMemoryEmbeddingStore
 
 1. **准备评分标准文档**
    
-   Java 作业评分标准、参考范例放入 `data/knowledge_base/`；数据库原理与 SQL 作业评分标准、参考范例放入 `data/database_knowledge_base/`。两套知识库路径和向量集合相互独立，避免 Java 与数据库检索上下文混用。支持格式：`.pdf`、`.docx`、`.txt`。
+   Java 作业评分标准、参考范例放入 `data/java_knowledge_base/`；数据库原理与 SQL 作业评分标准、参考范例放入 `data/database_knowledge_base/`。两套知识库路径和向量集合相互独立，避免 Java 与数据库检索上下文混用。支持格式：`.pdf`、`.docx`、`.txt`。
    
    建议命名格式（系统自动提取元数据）：
    ```
@@ -467,7 +460,7 @@ kill -9 <PID>
 
 ### 知识库同步后 chunkCount 仍为 0
 
-- 确认 `data/knowledge_base/` 目录下存在文件
+- 确认 `data/java_knowledge_base/` 目录下存在文件
 - 确认文件格式为 `.pdf`、`.docx` 或 `.txt`
 - 查看应用日志是否有加载失败的错误提示
 
@@ -512,7 +505,7 @@ aes-agent-java/
 ├── pom.xml                                    # Maven 项目配置
 ├── README.md
 ├── data/
-│   ├── knowledge_base/                        # Java 知识库文档（评分标准 / 参考范例）
+│   ├── java_knowledge_base/                   # Java 知识库文档（评分标准 / 参考范例）
 │   └── database_knowledge_base/               # 数据库知识库文档（评分标准 / 参考范例）
 └── src/
     └── main/
@@ -543,6 +536,6 @@ aes-agent-java/
 ## 十、注意事项
 
 - 首次启动会下载 BGE-small-zh 模型（约 100MB），需等待 1-2 分钟
-- Java 知识库位于 `data/knowledge_base/`，数据库知识库位于 `data/database_knowledge_base/`，放入评分标准文档后需分别点击同步
+- Java 知识库位于 `data/java_knowledge_base/`，数据库知识库位于 `data/database_knowledge_base/`，放入评分标准文档后需分别点击同步
 - Java 作业批改基于 LLM 静态分析；数据库作业会先在 H2 内存库的 MySQL 兼容模式执行 SQL，再结合执行证据与 RAG 上下文评分
 - AI 评分结果仅供教学参考，不作为正式考试成绩

@@ -35,7 +35,7 @@ public class AesConfig {
     @Value("${chroma.base.url:http://localhost:8000}")
     private String chromaBaseUrl;
 
-    @Value("${chroma.collection.name:aes-knowledge}")
+    @Value("${chroma.java.collection.name:${chroma.collection.name:aes-java-knowledge}}")
     private String chromaCollectionName;
 
     @Value("${chroma.database.collection.name:aes-database-knowledge}")
