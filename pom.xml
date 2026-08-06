@@ -14,7 +14,7 @@
 
     <groupId>com.aes</groupId>
     <artifactId>aes-agent</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <name>AES Agent</name>
     <description>RAG-powered Automated Essay Scoring Agent (Java/LangChain4j)</description>
 

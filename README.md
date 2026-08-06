@@ -2,13 +2,21 @@
 
 基于 **LangChain4j + Spring Boot + RAG** 的智能化作业批改系统。支持上传 Word 作业文档，逐题提取 Java 编程题、选择题、主观题、图片作答题或数据库 SQL 题，再按题型使用确定性答案对比或大语言模型进行批改。
 
-Windows 用户可从 [GitHub Releases](https://github.com/CyuYing/aes-agent-java/releases/latest) 下载 `AES-Agent-Windows.zip`，完整解压后双击 `start.cmd`；软件已内置 Java 运行时、MySQL 8、答案库与演示作业。
+当前版本：**v1.1.0**。Windows 用户可从 [GitHub Releases](https://github.com/CyuYing/aes-agent-java/releases/latest) 下载 `AES-Agent-Windows.zip`，完整解压后双击 `start.cmd`；软件已内置 Java 运行时、MySQL 8、答案库与演示作业。
 
 ---
 
 ## 一、系统简介
 
 本系统面向 Java 程序设计与数据库课程的教学辅助场景，帮助教师快速批改学生提交的作业文档。系统通过 RAG（检索增强生成）技术，自动从独立知识库中检索对应评分标准，结合大语言模型对每道题进行多维度评分。
+
+### v1.1.0 更新
+
+- 单份 Java、数据库及答案库批量流程均新增“AI 复核题目边界”可选开关，默认关闭。
+- AI 只返回原文起始行号；系统结合答案库题数、行号顺序和置信度校验，异常时自动回退本地规则。
+- 页面与 SSE 会显示 `ai-confirmed`、`ai-refined` 或 `rule-fallback`，教师可以确认实际采用的识别路径。
+- Windows 便携包、内置 Java/MySQL、演示作业、README 与 SHA-256 校验文件同步发布。
+- 使用 Java、数据库演示 DOCX 完成 38 项自动化测试，0 失败；需要外部 MySQL 环境的用例按条件跳过。
 
 ### 核心能力
 
@@ -416,7 +424,7 @@ mvn clean package -DskipTests
 打包成功后，会在 `target/` 目录下生成：
 ```
 target/
-├── aes-agent-1.0.0.jar          # 可执行 JAR
+├── aes-agent-1.1.0.jar          # 可执行 JAR
 └── ...
 ```
 
@@ -435,15 +443,15 @@ mvn spring-boot:run
 ```bash
 # 设置环境变量后启动（Linux/macOS）
 export GRADING_API_KEY=your-model-api-key
-java -jar target/aes-agent-1.0.0.jar
+java -jar target/aes-agent-1.1.0.jar
 
 # Windows PowerShell
 $env:GRADING_API_KEY="your-model-api-key"
-java -jar target/aes-agent-1.0.0.jar
+java -jar target/aes-agent-1.1.0.jar
 
 # Windows CMD
 set GRADING_API_KEY=your-model-api-key
-java -jar target/aes-agent-1.0.0.jar
+java -jar target/aes-agent-1.1.0.jar
 ```
 
 #### 验证启动
