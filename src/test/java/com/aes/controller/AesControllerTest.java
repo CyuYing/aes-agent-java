@@ -102,16 +102,21 @@ class AesControllerTest {
                 1, "SQL 查询", "使用 SELECT 完成查询",
                 "SELECT 1", "sql", "programming", "SELECT 1", List.of());
         Dto.HomeworkPreview preview = new Dto.HomeworkPreview(
-                "数据库作业.docx", List.of(question));
-        when(homeworkService.previewHomework(any())).thenReturn(preview);
+                "数据库作业.docx", "java", List.of(question),
+                new Dto.QuestionRecognitionInfo(
+                        true, true, "ai-confirmed", "AI 已复核题目边界",
+                        1, 1, 0.95));
+        when(homeworkService.previewHomework(any(), eq(true))).thenReturn(preview);
         when(assignmentDocumentService.detectCourseType(any(), eq(preview.questions())))
                 .thenReturn("database");
 
-        mockMvc.perform(multipart("/api/homework/parse").file(file))
+        mockMvc.perform(multipart("/api/homework/parse").file(file)
+                        .param("aiQuestionRecognition", "true"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fileName").value("数据库作业.docx"))
                 .andExpect(jsonPath("$.courseType").value("database"))
-                .andExpect(jsonPath("$.questions.length()").value(1));
+                .andExpect(jsonPath("$.questions.length()").value(1))
+                .andExpect(jsonPath("$.recognition.aiUsed").value(true));
     }
 
     @Test
@@ -190,7 +195,7 @@ class AesControllerTest {
         Dto.HomeworkResult result = new Dto.HomeworkResult("answer.docx", 80, 100, List.of());
         Dto.StudentIdentity identity = new Dto.StudentIdentity("张三", "J001", "一班", "作业1");
         when(homeworkService.gradeHomeworkStream(
-                any(), any(), any(), any(), any(), any())).thenReturn(result);
+                any(), any(), any(), any(), any(), eq(false), any())).thenReturn(result);
         when(assignmentDocumentService.parseIdentity(any())).thenReturn(identity);
 
         mockMvc.perform(multipart("/api/homework/grade/stream")

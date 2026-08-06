@@ -11,6 +11,7 @@ import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -31,6 +32,8 @@ import java.util.regex.Pattern;
  */
 @Service
 public class DocumentParserService {
+
+    private final AiQuestionRecognitionService aiQuestionRecognitionService;
 
     private static final String NUMBER_TOKEN = "[零〇一二三四五六七八九十百\\d]+";
 
@@ -88,12 +91,29 @@ public class DocumentParserService {
                     + "班级|姓名|学号|课程|教师|日期|专业",
             Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CHARACTER_CLASS);
 
+    /** 供不启动 Spring 的解析器单元测试使用，默认只走本地规则。 */
+    public DocumentParserService() {
+        this.aiQuestionRecognitionService = null;
+    }
+
+    @Autowired
+    public DocumentParserService(AiQuestionRecognitionService aiQuestionRecognitionService) {
+        this.aiQuestionRecognitionService = aiQuestionRecognitionService;
+    }
+
     /** 解析 DOCX，同时保留段落/表格顺序和内嵌图片。 */
     public List<Dto.QuestionEntry> parseDocx(MultipartFile file) {
+        return parseDocxDetailed(file, false, null).questions();
+    }
+
+    public ParsedQuestions parseDocxDetailed(MultipartFile file,
+                                             boolean aiRecognition,
+                                             Integer expectedQuestionCount) {
         try (InputStream input = file.getInputStream();
              XWPFDocument document = new XWPFDocument(input)) {
             ParsedDocument parsed = extractDocument(document);
-            return parseDocument(parsed.text(), parsed.images());
+            return parseDocumentDetailed(parsed.text(), parsed.images(),
+                    aiRecognition, expectedQuestionCount);
         } catch (Exception e) {
             throw new RuntimeException("文档解析失败: " + e.getMessage(), e);
         }
@@ -104,14 +124,50 @@ public class DocumentParserService {
         return parseDocument(text, Map.of());
     }
 
+    public ParsedQuestions parseTextDetailed(String text,
+                                             boolean aiRecognition,
+                                             Integer expectedQuestionCount) {
+        return parseDocumentDetailed(text, Map.of(), aiRecognition, expectedQuestionCount);
+    }
+
     private List<Dto.QuestionEntry> parseDocument(
             String text, Map<String, Dto.QuestionImage> imageMap) {
+        return parseDocumentDetailed(text, imageMap, false, null).questions();
+    }
+
+    private ParsedQuestions parseDocumentDetailed(
+            String text,
+            Map<String, Dto.QuestionImage> imageMap,
+            boolean aiRecognition,
+            Integer expectedQuestionCount) {
         if (text == null || text.isBlank()) {
-            return List.of();
+            Dto.QuestionRecognitionInfo info = new Dto.QuestionRecognitionInfo(
+                    aiRecognition, false, aiRecognition ? "rule-fallback" : "rule",
+                    "文档内容为空，未识别到题目", 0, 0, aiRecognition ? 0.0 : 1.0);
+            return new ParsedQuestions(List.of(), info);
         }
 
         String normalized = text.replace("\r\n", "\n").replace('\r', '\n');
-        List<String> blocks = splitByQuestionNumber(normalized);
+        List<String> ruleBlocks = splitByQuestionNumber(normalized);
+        List<String> blocks = ruleBlocks;
+        Dto.QuestionRecognitionInfo recognition = new Dto.QuestionRecognitionInfo(
+                false, false, "rule", "已使用本地规则识别题目",
+                ruleBlocks.size(), ruleBlocks.size(), 1.0);
+        if (aiRecognition) {
+            if (aiQuestionRecognitionService == null) {
+                recognition = new Dto.QuestionRecognitionInfo(
+                        true, false, "rule-fallback",
+                        "AI 复核服务未启用，已自动使用本地规则",
+                        ruleBlocks.size(), ruleBlocks.size(), 0.0);
+            } else {
+                AiQuestionRecognitionService.Refinement refinement =
+                        aiQuestionRecognitionService.refine(
+                                normalized, ruleBlocks, expectedQuestionCount);
+                blocks = refinement.blocks();
+                recognition = refinement.recognition();
+            }
+        }
+
         List<Dto.QuestionEntry> result = new ArrayList<>();
         int index = 1;
         for (String block : blocks) {
@@ -121,7 +177,11 @@ public class DocumentParserService {
                 index++;
             }
         }
-        return result;
+        recognition = new Dto.QuestionRecognitionInfo(
+                recognition.requested(), recognition.aiUsed(), recognition.method(),
+                recognition.message(), recognition.ruleQuestionCount(), result.size(),
+                recognition.confidence());
+        return new ParsedQuestions(List.copyOf(result), recognition);
     }
 
     private ParsedDocument extractDocument(XWPFDocument document) {
@@ -561,6 +621,10 @@ public class DocumentParserService {
     }
 
     private record ParsedDocument(String text, Map<String, Dto.QuestionImage> images) {}
+    public record ParsedQuestions(
+            List<Dto.QuestionEntry> questions,
+            Dto.QuestionRecognitionInfo recognition
+    ) {}
     private record Boundary(int start, String marker, int ordinal, boolean explicit) {}
     private record AnswerSection(String prompt, String answer) {}
     private record CodeSplit(String description, String code) {}

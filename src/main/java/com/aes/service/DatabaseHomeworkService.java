@@ -12,6 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Service
@@ -94,8 +95,14 @@ public class DatabaseHomeworkService {
             请严格按照系统角色设定的 JSON 格式返回数据库作业评分结果。""";
 
     public Dto.DatabaseHomeworkResult gradeHomework(MultipartFile file, String category) {
+        return gradeHomework(file, category, false);
+    }
+
+    public Dto.DatabaseHomeworkResult gradeHomework(
+            MultipartFile file, String category, boolean aiQuestionRecognition) {
         String fileName = file.getOriginalFilename();
-        List<Dto.DatabaseQuestionEntry> questions = documentParserService.parseDocx(file);
+        List<Dto.DatabaseQuestionEntry> questions = documentParserService
+                .parseDocxDetailed(file, aiQuestionRecognition, null).questions();
 
         List<Dto.DatabaseQuestionResult> results = new ArrayList<>();
         int totalScore = 0;
@@ -113,9 +120,20 @@ public class DatabaseHomeworkService {
 
     public Dto.DatabaseHomeworkResult gradeHomeworkStream(
             MultipartFile file, String category, PrintWriter writer) {
+        return gradeHomeworkStream(file, category, false, writer);
+    }
+
+    public Dto.DatabaseHomeworkResult gradeHomeworkStream(
+            MultipartFile file, String category,
+            boolean aiQuestionRecognition, PrintWriter writer) {
         try {
             String fileName = file.getOriginalFilename();
-            List<Dto.DatabaseQuestionEntry> questions = documentParserService.parseDocx(file);
+            DatabaseDocumentParserService.ParsedQuestions parsed = documentParserService
+                    .parseDocxDetailed(file, aiQuestionRecognition, null);
+            List<Dto.DatabaseQuestionEntry> questions = parsed.questions();
+            writer.write("event: recognition\ndata: "
+                    + recognitionToJson(parsed.recognition()) + "\n\n");
+            writer.flush();
 
             List<Dto.DatabaseQuestionResult> results = new ArrayList<>();
             int totalScore = 0;
@@ -328,6 +346,15 @@ public class DatabaseHomeworkService {
                     esc(h.fileName()), h.totalScore(), h.maxTotalScore(), qs);
         }
         return "{}";
+    }
+
+    private String recognitionToJson(Dto.QuestionRecognitionInfo info) {
+        return String.format(Locale.ROOT,
+                "{\"requested\":%s,\"aiUsed\":%s,\"method\":\"%s\","
+                        + "\"message\":\"%s\",\"ruleQuestionCount\":%d,"
+                        + "\"finalQuestionCount\":%d,\"confidence\":%.3f}",
+                info.requested(), info.aiUsed(), esc(info.method()), esc(info.message()),
+                info.ruleQuestionCount(), info.finalQuestionCount(), info.confidence());
     }
 
     private String executionToJson(Dto.SqlExecutionResult execution) {

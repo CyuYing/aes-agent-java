@@ -44,9 +44,14 @@ public class BatchGradingService {
     }
 
     public Dto.BatchPreview preview(String answerKeyId, List<MultipartFile> files) {
+        return preview(answerKeyId, files, false);
+    }
+
+    public Dto.BatchPreview preview(String answerKeyId, List<MultipartFile> files,
+                                    boolean aiQuestionRecognition) {
         Dto.AnswerKeyProfile key = answerKeyService.getRequired(answerKeyId);
         requireHundredPointKey(key);
-        List<PreparedFile> prepared = prepareFiles(key, files);
+        List<PreparedFile> prepared = prepareFiles(key, files, aiQuestionRecognition);
         return new Dto.BatchPreview(
                 answerKeyService.summary(key),
                 prepared.stream().map(PreparedFile::preview).toList());
@@ -57,9 +62,18 @@ public class BatchGradingService {
             List<MultipartFile> files,
             String actor,
             ProgressSink progress) {
+        return grade(answerKeyId, files, actor, false, progress);
+    }
+
+    public Dto.BatchGradingResult grade(
+            String answerKeyId,
+            List<MultipartFile> files,
+            String actor,
+            boolean aiQuestionRecognition,
+            ProgressSink progress) {
         Dto.AnswerKeyProfile key = answerKeyService.getRequired(answerKeyId);
         requireHundredPointKey(key);
-        List<PreparedFile> prepared = prepareFiles(key, files);
+        List<PreparedFile> prepared = prepareFiles(key, files, aiQuestionRecognition);
         ProgressSink sink = progress == null ? (event, payload) -> {} : progress;
         Dto.BatchPreview preview = new Dto.BatchPreview(
                 answerKeyService.summary(key),
@@ -205,7 +219,8 @@ public class BatchGradingService {
     }
 
     private List<PreparedFile> prepareFiles(
-            Dto.AnswerKeyProfile key, List<MultipartFile> files) {
+            Dto.AnswerKeyProfile key, List<MultipartFile> files,
+            boolean aiQuestionRecognition) {
         if (files == null || files.isEmpty()) {
             throw new IllegalArgumentException("请至少上传一份学生作业");
         }
@@ -215,7 +230,8 @@ public class BatchGradingService {
         List<PreparedFile> result = new ArrayList<>();
         for (MultipartFile file : files) {
             AssignmentDocumentService.ParsedAssignment assignment =
-                    assignmentDocumentService.parse(file);
+                    assignmentDocumentService.parse(
+                            file, aiQuestionRecognition, key.questions().size());
             List<MatchedQuestion> matches = matchQuestions(key.questions(), assignment.questions());
             List<String> warnings = new ArrayList<>();
             if (assignment.questions().isEmpty()) warnings.add("未识别到任何题目");
@@ -239,7 +255,8 @@ public class BatchGradingService {
                     .toList();
             Dto.BatchFilePreview preview = new Dto.BatchFilePreview(
                     assignment.fileName(), assignment.student(), assignment.questions().size(),
-                    matches.size(), publicMatches, List.copyOf(warnings));
+                    matches.size(), publicMatches, List.copyOf(warnings),
+                    assignment.recognition());
             result.add(new PreparedFile(assignment, matches, preview));
         }
         return List.copyOf(result);

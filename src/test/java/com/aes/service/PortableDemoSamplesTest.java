@@ -35,22 +35,20 @@ class PortableDemoSamplesTest {
     }
 
     @Test
-    @EnabledIfEnvironmentVariable(named = "AES_TEST_MYSQL_SANDBOX_URL", matches = ".+")
-    void databaseDemoCoversSuccessfulQueriesAndSafetyBlocking() throws Exception {
-        Path sample = Path.of("samples", "数据库完整功能演示作业.docx");
-        MockMultipartFile file = new MockMultipartFile(
-                "file",
-                sample.getFileName().toString(),
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                Files.readAllBytes(sample));
+    void databaseDemoIsSplitIntoThreeTopLevelQuestions() throws Exception {
+        List<Dto.DatabaseQuestionEntry> questions = databaseDemoQuestions();
 
-        List<Dto.DatabaseQuestionEntry> questions =
-                new DatabaseDocumentParserService().parseDocx(file);
         assertThat(questions).hasSize(3);
         assertThat(questions).allSatisfy(question -> {
             assertThat(question.setupSql()).isNotBlank();
             assertThat(question.answerSql()).isNotBlank();
         });
+    }
+
+    @Test
+    @EnabledIfEnvironmentVariable(named = "AES_TEST_MYSQL_SANDBOX_URL", matches = ".+")
+    void databaseDemoCoversSuccessfulQueriesAndSafetyBlocking() throws Exception {
+        List<Dto.DatabaseQuestionEntry> questions = databaseDemoQuestions();
 
         DatabaseExecutionService executionService = new DatabaseExecutionService();
         ReflectionTestUtils.setField(executionService, "sandboxUrl",
@@ -72,5 +70,18 @@ class PortableDemoSamplesTest {
         assertThat(aggregateResult.statements().get(aggregateResult.statements().size() - 1).rows()).hasSize(1);
         assertThat(blockedResult.success()).isFalse();
         assertThat(blockedResult.errorSummary()).contains("禁止执行的高风险语句");
+    }
+
+    private List<Dto.DatabaseQuestionEntry> databaseDemoQuestions() throws Exception {
+        Path sample = Path.of("samples", "数据库完整功能演示作业.docx");
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                sample.getFileName().toString(),
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                Files.readAllBytes(sample));
+
+        List<Dto.DatabaseQuestionEntry> questions =
+                new DatabaseDocumentParserService().parseDocx(file);
+        return questions;
     }
 }

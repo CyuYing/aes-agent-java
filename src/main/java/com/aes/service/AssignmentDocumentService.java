@@ -30,11 +30,21 @@ public class AssignmentDocumentService {
     }
 
     public ParsedAssignment parse(MultipartFile file) {
-        List<Dto.QuestionEntry> questions = documentParserService.parseDocx(file);
+        return parse(file, false, null);
+    }
+
+    public ParsedAssignment parse(MultipartFile file,
+                                  boolean aiQuestionRecognition,
+                                  Integer expectedQuestionCount) {
+        DocumentParserService.ParsedQuestions parsed =
+                documentParserService.parseDocxDetailed(
+                        file, aiQuestionRecognition, expectedQuestionCount);
+        List<Dto.QuestionEntry> questions = parsed.questions();
         Map<String, String> metadata = extractMetadata(file);
         String fileName = safeFileName(file);
         Dto.StudentIdentity student = identity(metadata, fileName);
-        return new ParsedAssignment(fileName, student, questions, metadata);
+        return new ParsedAssignment(
+                fileName, student, questions, metadata, parsed.recognition());
     }
 
     /** 只读取身份信息，供单份批改归档使用，不重复解析题目。 */
@@ -153,6 +163,16 @@ public class AssignmentDocumentService {
             String fileName,
             Dto.StudentIdentity student,
             List<Dto.QuestionEntry> questions,
-            Map<String, String> metadata
-    ) {}
+            Map<String, String> metadata,
+            Dto.QuestionRecognitionInfo recognition
+    ) {
+        public ParsedAssignment(String fileName, Dto.StudentIdentity student,
+                                List<Dto.QuestionEntry> questions,
+                                Map<String, String> metadata) {
+            this(fileName, student, questions, metadata,
+                    new Dto.QuestionRecognitionInfo(false, false, "rule",
+                            "已使用本地规则识别题目", questions.size(),
+                            questions.size(), 1.0));
+        }
+    }
 }

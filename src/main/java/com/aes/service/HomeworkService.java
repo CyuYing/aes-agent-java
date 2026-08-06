@@ -173,8 +173,16 @@ public class HomeworkService {
             """;
 
     public Dto.HomeworkPreview previewHomework(MultipartFile file) {
+        return previewHomework(file, false);
+    }
+
+    public Dto.HomeworkPreview previewHomework(
+            MultipartFile file, boolean aiQuestionRecognition) {
+        DocumentParserService.ParsedQuestions parsed =
+                documentParserService.parseDocxDetailed(
+                        file, aiQuestionRecognition, null);
         return new Dto.HomeworkPreview(
-                safeFileName(file), documentParserService.parseDocx(file));
+                safeFileName(file), "java", parsed.questions(), parsed.recognition());
     }
 
     /** 保留原接口行为：未提供教师配置时使用自动识别结果。 */
@@ -187,7 +195,20 @@ public class HomeworkService {
                                             List<Dto.QuestionConfig> configs,
                                             List<MultipartFile> referenceImages,
                                             List<Integer> referenceImageQuestionIndexes) {
-        List<Dto.QuestionEntry> questions = documentParserService.parseDocx(file);
+        return gradeHomework(file, category, configs, referenceImages,
+                referenceImageQuestionIndexes, false);
+    }
+
+    public Dto.HomeworkResult gradeHomework(MultipartFile file,
+                                            String category,
+                                            List<Dto.QuestionConfig> configs,
+                                            List<MultipartFile> referenceImages,
+                                            List<Integer> referenceImageQuestionIndexes,
+                                            boolean aiQuestionRecognition) {
+        Integer expectedQuestionCount = configs == null || configs.isEmpty()
+                ? null : configs.size();
+        List<Dto.QuestionEntry> questions = documentParserService.parseDocxDetailed(
+                file, aiQuestionRecognition, expectedQuestionCount).questions();
         Map<Integer, Dto.QuestionConfig> configMap = indexConfigs(configs);
         Map<Integer, List<Dto.QuestionImage>> imageMap = indexReferenceImages(
                 referenceImages, referenceImageQuestionIndexes);
@@ -221,8 +242,25 @@ public class HomeworkService {
                                                   List<MultipartFile> referenceImages,
                                                   List<Integer> referenceImageQuestionIndexes,
                                                   PrintWriter writer) {
+        return gradeHomeworkStream(file, category, configs, referenceImages,
+                referenceImageQuestionIndexes, false, writer);
+    }
+
+    public Dto.HomeworkResult gradeHomeworkStream(MultipartFile file,
+                                                  String category,
+                                                  List<Dto.QuestionConfig> configs,
+                                                  List<MultipartFile> referenceImages,
+                                                  List<Integer> referenceImageQuestionIndexes,
+                                                  boolean aiQuestionRecognition,
+                                                  PrintWriter writer) {
         try {
-            List<Dto.QuestionEntry> questions = documentParserService.parseDocx(file);
+            Integer expectedQuestionCount = configs == null || configs.isEmpty()
+                    ? null : configs.size();
+            DocumentParserService.ParsedQuestions parsed =
+                    documentParserService.parseDocxDetailed(
+                            file, aiQuestionRecognition, expectedQuestionCount);
+            List<Dto.QuestionEntry> questions = parsed.questions();
+            writeEvent(writer, "recognition", parsed.recognition());
             Map<Integer, Dto.QuestionConfig> configMap = indexConfigs(configs);
             Map<Integer, List<Dto.QuestionImage>> imageMap = indexReferenceImages(
                     referenceImages, referenceImageQuestionIndexes);

@@ -659,6 +659,23 @@ select:focus {
     border-radius: 8px;
     padding: 10px 12px;
 }
+.recognition-option {
+    align-items: flex-start;
+    margin-top: 12px;
+    background: #f8fafc;
+}
+.recognition-option input { margin-top: 3px; }
+.recognition-option strong { display: block; margin-bottom: 2px; color: var(--text); }
+.recognition-option small { display: block; color: var(--muted); line-height: 1.55; }
+.recognition-status {
+    margin-top: 8px;
+    min-height: 20px;
+    color: var(--muted);
+    font-size: .78rem;
+    line-height: 1.55;
+}
+.recognition-status.ai-used { color: #047857; }
+.recognition-status.fallback { color: #b45309; }
 
 /* Unified single-homework workflow */
 .single-intro {
@@ -1196,6 +1213,11 @@ select:focus {
                     <input type="file" id="batchFolderFiles" accept=".docx" webkitdirectory directory multiple onchange="handleBatchFolder(event)">
                 </label>
                 <div id="batchStudentList" class="batch-file-list"></div>
+                <label class="toggle-row recognition-option">
+                    <input type="checkbox" id="batchAiQuestionRecognition" onchange="changeBatchAiRecognition()">
+                    <span><strong>AI 复核题目边界（可选）</strong>
+                    <small>在本地规则之后增加一次 AI 题目起始行校验；失败时自动回退，不影响批改。</small></span>
+                </label>
                 <div class="batch-actions">
                     <button class="btn btn-primary" id="batchPreviewBtn" type="button" onclick="prepareBatch()" disabled>自动建库并预检匹配</button>
                 </div>
@@ -1254,6 +1276,12 @@ select:focus {
                 <span id="singleCourseBadge" class="single-detected-badge">等待上传</span>
             </div>
         </div>
+        <label class="toggle-row recognition-option">
+            <input type="checkbox" id="singleAiQuestionRecognition" onchange="changeSingleAiRecognition(this)">
+            <span><strong>AI 复核题目边界（可选）</strong>
+            <small>适合题号不规范、表格排版或题内编号较多的文档；AI 不改写作业，异常时自动回退本地规则。</small></span>
+        </label>
+        <div id="singleRecognitionStatus" class="recognition-status">当前使用本地规则识别题目。</div>
         <h2>上传作业文档</h2>
         <div class="upload-area" id="uploadArea" onclick="document.getElementById('homeworkFile').click()">
             <img id="singleUploadIllustration" class="upload-illustration" src="/assets/ui/upload-documents.webp" alt="" aria-hidden="true" decoding="async">
@@ -1680,6 +1708,13 @@ function setBatchStudentFiles(files) {
     updateBatchButtons();
 }
 
+function changeBatchAiRecognition() {
+    batchPreview = null;
+    document.getElementById('batchPreviewPanel').style.display = 'none';
+    document.getElementById('batchGradeBtn').disabled = true;
+    updateBatchButtons();
+}
+
 function validBatchDocx(file, showAlert = true) {
     let message = '';
     if (!file.name.toLowerCase().endsWith('.docx')) message = '仅支持 .docx 格式';
@@ -1732,6 +1767,8 @@ async function prepareBatch() {
         button.textContent = '正在预检匹配...';
         const form = new FormData();
         form.append('answerKeyId', batchSelectedKey.id);
+        form.append('aiQuestionRecognition', String(
+            document.getElementById('batchAiQuestionRecognition').checked));
         batchStudentFiles.forEach(file => form.append('files', file));
         const response = await fetch('/api/batch/preview', { method: 'POST', body: form });
         if (!response.ok) throw new Error(await readErrorResponse(response));
@@ -1754,12 +1791,19 @@ function renderBatchPreview(preview) {
     const files = preview.files || [];
     body.innerHTML = files.map(file => {
         const complete = file.matchedCount === preview.answerKey.questionCount;
+        const notes = [];
+        if (file.recognition && file.recognition.requested) {
+            notes.push(`<span class="${file.recognition.aiUsed ? 'match-ok' : 'match-warn'}">${escapeHtml(file.recognition.message || '题目边界复核完成')}</span>`);
+        }
+        for (const warning of (file.warnings || [])) {
+            notes.push(`<span class="match-warn">${escapeHtml(warning)}</span>`);
+        }
         return `<tr>
             <td><strong>${escapeHtml(file.student.name || '未识别')}</strong></td>
             <td>${escapeHtml(file.student.studentId || '无学号')}<br><span class="parse-note">${escapeHtml(file.student.className || '无班级')}</span></td>
             <td>${escapeHtml(file.fileName)}</td>
             <td class="${complete ? 'match-ok' : 'match-warn'}">${file.matchedCount}/${preview.answerKey.questionCount}</td>
-            <td>${(file.warnings || []).length ? escapeHtml(file.warnings.join('；')) : '<span class="match-ok">题号完整</span>'}</td>
+            <td>${notes.length ? notes.join('<br>') : '<span class="match-ok">题号完整</span>'}</td>
         </tr>`;
     }).join('');
     const allMatched = files.every(file => file.matchedCount === preview.answerKey.questionCount);
@@ -1789,12 +1833,17 @@ async function startBatchGrading() {
 
     const form = new FormData();
     form.append('answerKeyId', batchSelectedKey.id);
+    form.append('aiQuestionRecognition', String(
+        document.getElementById('batchAiQuestionRecognition').checked));
     batchStudentFiles.forEach(file => form.append('files', file));
     try {
         const response = await fetch('/api/batch/grade/stream', { method: 'POST', body: form });
         if (!response.ok) throw new Error(await readErrorResponse(response));
         await readSseEvents(response, (eventName, eventData) => {
-            if (eventName === 'file-start') {
+            if (eventName === 'preview') {
+                batchPreview = JSON.parse(eventData);
+                renderBatchPreview(batchPreview);
+            } else if (eventName === 'file-start') {
                 const data = JSON.parse(eventData);
                 document.getElementById('batchProgressText').innerHTML =
                     `<span class="spinner"></span> 正在批改 ${escapeHtml(data.student.name || data.fileName)}（${data.fileIndex + 1}/${batchStudentFiles.length}）`;
@@ -1933,6 +1982,34 @@ function clearSingleHomeworkResults() {
     document.getElementById('hwSourcesContent').innerHTML = '';
 }
 
+function renderQuestionRecognition(info) {
+    const status = document.getElementById('singleRecognitionStatus');
+    if (!info) {
+        status.className = 'recognition-status';
+        status.textContent = document.getElementById('singleAiQuestionRecognition').checked
+            ? '等待 AI 复核题目边界。' : '当前使用本地规则识别题目。';
+        return;
+    }
+    status.className = 'recognition-status'
+        + (info.aiUsed ? ' ai-used' : (info.requested ? ' fallback' : ''));
+    const confidence = info.aiUsed && Number.isFinite(Number(info.confidence))
+        ? `，置信度 ${Math.round(Number(info.confidence) * 100)}%` : '';
+    status.textContent = `${info.message || '题目边界识别完成'}${confidence}`;
+}
+
+async function changeSingleAiRecognition(input) {
+    if (!selectedHomeworkFile) {
+        renderQuestionRecognition(null);
+        return;
+    }
+    if (parsedHomeworkQuestions.length
+        && !confirm('切换题目识别方式需要重新解析文档，当前逐题配置会被清空。是否继续？')) {
+        input.checked = !input.checked;
+        return;
+    }
+    await selectHomeworkFile(selectedHomeworkFile);
+}
+
 function updateSingleHomeworkMode() {
     const hasFile = Boolean(selectedHomeworkFile);
     const chosen = homeworkCoursePreference === 'auto'
@@ -2001,6 +2078,7 @@ function resetSingleHomeworkSelection() {
     document.getElementById('questionConfigList').innerHTML = '';
     document.getElementById('databaseModeHint').style.display = 'none';
     document.getElementById('homeworkFile').value = '';
+    renderQuestionRecognition(null);
     clearSingleHomeworkResults();
     updateSingleHomeworkMode();
 }
@@ -2028,18 +2106,23 @@ async function selectHomeworkFile(file) {
     document.getElementById('hwBtn').disabled = true;
     document.getElementById('hwParseProgress').style.display = 'block';
     document.getElementById('hwParseProgressText').textContent =
-        homeworkCoursePreference === 'auto'
-            ? '正在解析文档并识别课程类型...'
-            : `正在解析 ${homeworkCourseLabel(homeworkCoursePreference)} 作业...`;
+        document.getElementById('singleAiQuestionRecognition').checked
+            ? '正在解析文档并由 AI 复核题目边界...'
+            : (homeworkCoursePreference === 'auto'
+                ? '正在解析文档并识别课程类型...'
+                : `正在解析 ${homeworkCourseLabel(homeworkCoursePreference)} 作业...`);
     clearSingleHomeworkResults();
 
     const form = new FormData();
     form.append('file', file);
+    form.append('aiQuestionRecognition', String(
+        document.getElementById('singleAiQuestionRecognition').checked));
     try {
         const response = await fetch('/api/homework/parse', { method: 'POST', body: form });
         if (!response.ok) throw new Error(await readErrorResponse(response));
         const preview = await response.json();
         parsedHomeworkQuestions = preview.questions || [];
+        renderQuestionRecognition(preview.recognition);
         detectedHomeworkCourseType = preview.courseType === 'database' ? 'database' : 'java';
         const chosen = homeworkCoursePreference === 'auto'
             ? detectedHomeworkCourseType
@@ -2237,6 +2320,8 @@ async function startHomeworkGrading() {
     form.append('file', selectedHomeworkFile);
     form.append('category', document.getElementById('category').value);
     form.append('configs', JSON.stringify(configs));
+    form.append('aiQuestionRecognition', String(
+        document.getElementById('singleAiQuestionRecognition').checked));
     for (const q of parsedHomeworkQuestions) {
         const input = document.getElementById(`referenceImages-${q.index}`);
         for (const file of [...input.files]) {
@@ -2250,7 +2335,9 @@ async function startHomeworkGrading() {
         if (!response.ok) throw new Error(await readErrorResponse(response));
         let allSources = [];
         await readSseEvents(response, (eventName, eventData) => {
-            if (eventName === 'question') {
+            if (eventName === 'recognition') {
+                renderQuestionRecognition(JSON.parse(eventData));
+            } else if (eventName === 'question') {
                 const q = JSON.parse(eventData);
                 renderQuestion(q);
                 if (q.sources) allSources.push(...q.sources);
@@ -2442,6 +2529,8 @@ async function startDatabaseHomeworkGrading() {
     const form = new FormData();
     form.append('file', selectedHomeworkFile);
     form.append('category', document.getElementById('category').value);
+    form.append('aiQuestionRecognition', String(
+        document.getElementById('singleAiQuestionRecognition').checked));
 
     try {
         const response = await fetch('/api/database/homework/grade/stream', {
@@ -2451,7 +2540,9 @@ async function startDatabaseHomeworkGrading() {
         if (!response.ok) throw new Error(await readErrorResponse(response));
         const allSources = [];
         await readSseEvents(response, (eventName, eventData) => {
-            if (eventName === 'question') {
+            if (eventName === 'recognition') {
+                renderQuestionRecognition(JSON.parse(eventData));
+            } else if (eventName === 'question') {
                 const q = JSON.parse(eventData);
                 renderDatabaseQuestion(q);
                 if (q.sources) allSources.push(...q.sources);

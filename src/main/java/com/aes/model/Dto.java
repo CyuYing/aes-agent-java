@@ -84,12 +84,34 @@ public final class Dto {
             Map<String, String> imageRoles
     ) {}
 
+    /**
+     * 题目边界识别的可审计状态。AI 只复核题目起始行，不改写原文；任何异常都会
+     * 回退到本地规则。
+     */
+    public record QuestionRecognitionInfo(
+            boolean requested,
+            boolean aiUsed,
+            String method,
+            String message,
+            int ruleQuestionCount,
+            int finalQuestionCount,
+            double confidence
+    ) {}
+
     /** 上传文档后的逐题解析预览。 */
     public record HomeworkPreview(
             String fileName,
             String courseType,
-            List<QuestionEntry> questions
+            List<QuestionEntry> questions,
+            QuestionRecognitionInfo recognition
     ) {
+        public HomeworkPreview(String fileName, String courseType,
+                               List<QuestionEntry> questions) {
+            this(fileName, courseType, questions, new QuestionRecognitionInfo(
+                    false, false, "rule", "已使用本地规则识别题目", questions.size(),
+                    questions.size(), 1.0));
+        }
+
         public HomeworkPreview(String fileName, List<QuestionEntry> questions) {
             this(fileName, "java", questions);
         }
@@ -242,8 +264,18 @@ public final class Dto {
             int questionCount,
             int matchedCount,
             List<QuestionMatch> matches,
-            List<String> warnings
-    ) {}
+            List<String> warnings,
+            QuestionRecognitionInfo recognition
+    ) {
+        public BatchFilePreview(String fileName, StudentIdentity student,
+                                int questionCount, int matchedCount,
+                                List<QuestionMatch> matches, List<String> warnings) {
+            this(fileName, student, questionCount, matchedCount, matches, warnings,
+                    new QuestionRecognitionInfo(false, false, "rule",
+                            "已使用本地规则识别题目", questionCount,
+                            questionCount, 1.0));
+        }
+    }
 
     public record BatchPreview(
             AnswerKeySummary answerKey,

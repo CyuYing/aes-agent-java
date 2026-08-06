@@ -152,15 +152,18 @@ public class AesController {
     @PostMapping("/batch/preview")
     public Dto.BatchPreview previewBatch(
             @RequestParam("answerKeyId") String answerKeyId,
-            @RequestParam("files") List<MultipartFile> files) {
+            @RequestParam("files") List<MultipartFile> files,
+            @RequestParam(defaultValue = "false") boolean aiQuestionRecognition) {
         validateDocxFiles(files);
-        return batchGradingService.preview(answerKeyId, files);
+        return batchGradingService.preview(
+                answerKeyId, files, aiQuestionRecognition);
     }
 
     @PostMapping(value = "/batch/grade/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public void gradeBatchStream(
             @RequestParam("answerKeyId") String answerKeyId,
             @RequestParam("files") List<MultipartFile> files,
+            @RequestParam(defaultValue = "false") boolean aiQuestionRecognition,
             Principal principal,
             HttpServletResponse response) throws Exception {
         validateDocxFiles(files);
@@ -172,7 +175,7 @@ public class AesController {
         PrintWriter writer = response.getWriter();
         try {
             batchGradingService.grade(
-                    answerKeyId, files, actor(principal),
+                    answerKeyId, files, actor(principal), aiQuestionRecognition,
                     (event, payload) -> writeEvent(writer, event, payload));
             writeDone(writer);
         } catch (Exception error) {
@@ -191,13 +194,15 @@ public class AesController {
      */
     @PostMapping("/homework/parse")
     public Dto.HomeworkPreview parseHomework(
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(defaultValue = "false") boolean aiQuestionRecognition) {
         validateDocx(file);
-        Dto.HomeworkPreview preview = homeworkService.previewHomework(file);
+        Dto.HomeworkPreview preview = homeworkService.previewHomework(
+                file, aiQuestionRecognition);
         String courseType = assignmentDocumentService.detectCourseType(
                 file, preview.questions());
         return new Dto.HomeworkPreview(
-                preview.fileName(), courseType, preview.questions());
+                preview.fileName(), courseType, preview.questions(), preview.recognition());
     }
 
     /**
@@ -212,11 +217,13 @@ public class AesController {
             List<MultipartFile> referenceImages,
             @RequestParam(value = "referenceImageQuestionIndexes", required = false)
             List<Integer> referenceImageQuestionIndexes,
+            @RequestParam(defaultValue = "false") boolean aiQuestionRecognition,
             Principal principal) {
         validateDocx(file);
         Dto.HomeworkResult result = homeworkService.gradeHomework(
                 file, category, parseQuestionConfigs(configs),
-                emptyIfNull(referenceImages), emptyIfNull(referenceImageQuestionIndexes));
+                emptyIfNull(referenceImages), emptyIfNull(referenceImageQuestionIndexes),
+                aiQuestionRecognition);
         gradingRecordService.saveJava(result, actor(principal), safeIdentity(file));
         return result;
     }
@@ -233,6 +240,7 @@ public class AesController {
             List<MultipartFile> referenceImages,
             @RequestParam(value = "referenceImageQuestionIndexes", required = false)
             List<Integer> referenceImageQuestionIndexes,
+            @RequestParam(defaultValue = "false") boolean aiQuestionRecognition,
             Principal principal,
             HttpServletResponse response) throws Exception {
         validateDocx(file);
@@ -247,7 +255,7 @@ public class AesController {
         Dto.HomeworkResult result = homeworkService.gradeHomeworkStream(
                 file, category, parsedConfigs,
                 emptyIfNull(referenceImages), emptyIfNull(referenceImageQuestionIndexes),
-                writer);
+                aiQuestionRecognition, writer);
         if (result != null) {
             try {
                 gradingRecordService.saveJava(result, actor(principal), safeIdentity(file));
@@ -267,9 +275,11 @@ public class AesController {
     public Dto.DatabaseHomeworkResult gradeDatabaseHomework(
             @RequestParam("file") MultipartFile file,
             @RequestParam(defaultValue = "general") String category,
+            @RequestParam(defaultValue = "false") boolean aiQuestionRecognition,
             Principal principal) {
         validateDocx(file);
-        Dto.DatabaseHomeworkResult result = databaseHomeworkService.gradeHomework(file, category);
+        Dto.DatabaseHomeworkResult result = databaseHomeworkService.gradeHomework(
+                file, category, aiQuestionRecognition);
         gradingRecordService.saveDatabase(result, actor(principal), safeIdentity(file));
         return result;
     }
@@ -278,6 +288,7 @@ public class AesController {
     public void gradeDatabaseHomeworkStream(
             @RequestParam("file") MultipartFile file,
             @RequestParam(defaultValue = "general") String category,
+            @RequestParam(defaultValue = "false") boolean aiQuestionRecognition,
             Principal principal,
             HttpServletResponse response) throws Exception {
 
@@ -290,7 +301,8 @@ public class AesController {
 
         PrintWriter writer = response.getWriter();
         Dto.DatabaseHomeworkResult result =
-                databaseHomeworkService.gradeHomeworkStream(file, category, writer);
+                databaseHomeworkService.gradeHomeworkStream(
+                        file, category, aiQuestionRecognition, writer);
         if (result != null) {
             try {
                 gradingRecordService.saveDatabase(result, actor(principal), safeIdentity(file));

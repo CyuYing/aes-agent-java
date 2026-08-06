@@ -2,6 +2,7 @@ package com.aes.service;
 
 import com.aes.model.Dto;
 import org.apache.tika.Tika;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -13,6 +14,8 @@ import java.util.regex.Pattern;
 
 @Service
 public class DatabaseDocumentParserService {
+
+    private final AiQuestionRecognitionService aiQuestionRecognitionService;
 
     private static final Pattern QUESTION_SPLITTER = Pattern.compile(
             "(?:^|\\n\\s*)(?:【?第\\s*[一二三四五六七八九十百\\d]+\\s*题】?|题目\\s*[\\d一二三四五六七八九十百]+|[\\d一二三四五六七八九十百]+[\\.、)）]|\\([\\d一二三四五六七八九十百]+\\))\\s*",
@@ -47,7 +50,23 @@ public class DatabaseDocumentParserService {
             Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CHARACTER_CLASS
     );
 
+    public DatabaseDocumentParserService() {
+        this.aiQuestionRecognitionService = null;
+    }
+
+    @Autowired
+    public DatabaseDocumentParserService(
+            AiQuestionRecognitionService aiQuestionRecognitionService) {
+        this.aiQuestionRecognitionService = aiQuestionRecognitionService;
+    }
+
     public List<Dto.DatabaseQuestionEntry> parseDocx(MultipartFile file) {
+        return parseDocxDetailed(file, false, null).questions();
+    }
+
+    public ParsedQuestions parseDocxDetailed(MultipartFile file,
+                                             boolean aiRecognition,
+                                             Integer expectedQuestionCount) {
         String text;
         try (InputStream is = file.getInputStream()) {
             Tika tika = new Tika();
@@ -55,16 +74,42 @@ public class DatabaseDocumentParserService {
         } catch (Exception e) {
             throw new RuntimeException("数据库作业文档解析失败: " + e.getMessage(), e);
         }
-        return parseText(text);
+        return parseTextDetailed(text, aiRecognition, expectedQuestionCount);
     }
 
     public List<Dto.DatabaseQuestionEntry> parseText(String text) {
+        return parseTextDetailed(text, false, null).questions();
+    }
+
+    public ParsedQuestions parseTextDetailed(String text,
+                                             boolean aiRecognition,
+                                             Integer expectedQuestionCount) {
         if (text == null || text.isBlank()) {
-            return List.of();
+            Dto.QuestionRecognitionInfo info = new Dto.QuestionRecognitionInfo(
+                    aiRecognition, false, aiRecognition ? "rule-fallback" : "rule",
+                    "文档内容为空，未识别到题目", 0, 0, aiRecognition ? 0.0 : 1.0);
+            return new ParsedQuestions(List.of(), info);
         }
 
         text = text.replace("\r\n", "\n").replace('\r', '\n');
         List<String> rawBlocks = splitByQuestionNumber(text);
+        Dto.QuestionRecognitionInfo recognition = new Dto.QuestionRecognitionInfo(
+                false, false, "rule", "已使用本地规则识别题目",
+                rawBlocks.size(), rawBlocks.size(), 1.0);
+        if (aiRecognition) {
+            if (aiQuestionRecognitionService == null) {
+                recognition = new Dto.QuestionRecognitionInfo(
+                        true, false, "rule-fallback",
+                        "AI 复核服务未启用，已自动使用本地规则",
+                        rawBlocks.size(), rawBlocks.size(), 0.0);
+            } else {
+                AiQuestionRecognitionService.Refinement refinement =
+                        aiQuestionRecognitionService.refine(
+                                text, rawBlocks, expectedQuestionCount);
+                rawBlocks = refinement.blocks();
+                recognition = refinement.recognition();
+            }
+        }
 
         List<Dto.DatabaseQuestionEntry> result = new ArrayList<>();
         int index = 1;
@@ -74,7 +119,11 @@ public class DatabaseDocumentParserService {
                 result.add(entry);
             }
         }
-        return result;
+        recognition = new Dto.QuestionRecognitionInfo(
+                recognition.requested(), recognition.aiUsed(), recognition.method(),
+                recognition.message(), recognition.ruleQuestionCount(), result.size(),
+                recognition.confidence());
+        return new ParsedQuestions(List.copyOf(result), recognition);
     }
 
     private List<String> splitByQuestionNumber(String text) {
@@ -268,6 +317,11 @@ public class DatabaseDocumentParserService {
     }
 
     private enum MarkerType { SETUP, ANSWER, UNKNOWN }
+
+    public record ParsedQuestions(
+            List<Dto.DatabaseQuestionEntry> questions,
+            Dto.QuestionRecognitionInfo recognition
+    ) {}
 
     private record CodeBlock(int start, int end, String sql) {}
     private record SqlSections(String description, String setupSql, String answerSql) {}
