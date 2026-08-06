@@ -1,0 +1,50 @@
+{
+  "id" : "java-11c589dae9753915",
+  "name" : "Java",
+  "courseType" : "java",
+  "sourceFileName" : "Java-题目参考答案与评分标准.docx",
+  "sha256" : "11c589dae975391576dd6201ef29a0bb71296b040f5993ccfc752f2860a699a4",
+  "createdAt" : "2026-07-22T08:31:01.392534700Z",
+  "maxScore" : 100,
+  "questions" : [ {
+    "index" : 1,
+    "title" : "【第1题】 问答题：面向对象的基本特点是什么？",
+    "description" : "{15分，根据完善程度酌情给分}",
+    "referenceAnswer" : "面向对象编程的核心特征包括封装、继承和多态。封装将数据和方法组合成独立单元，隐藏内部细节；继承允许子类复用父类代码，扩展功能；多态使同一操作在不同对象中有不同行为，增强灵活性。",
+    "questionType" : "subjective",
+    "maxScore" : 15,
+    "scoreInferred" : false,
+    "rubric" : "15分，根据完善程度酌情给分",
+    "referenceImages" : [ ]
+  }, {
+    "index" : 2,
+    "title" : "【第2题】 简答题：请写出程序的运行结果。",
+    "description" : "class Super{\n\tint x=11,y=22;\n\tint method() {\n\t\treturn (x<y? x: y);\n\t}\n}\nclass Sub extends Super{\n\tint method() {\n\t\treturn (x>y? x: y);\n\t}\n}\npublic class TestSample {\n\tpublic static void main(String[] args) {\n\t\tSub obj1=new Sub();\n\t\tSuper obj2=new Sub();\n\t\tSuper obj3=new Super();\n\t\tSystem.out.println(obj1.method());\n\t\tSystem.out.println(obj2.method());\n\t\tSystem.out.println(obj3.method());\n\t}\n}\n{15分，每个要点5分}",
+    "referenceAnswer" : "22\n22\n11",
+    "questionType" : "subjective",
+    "maxScore" : 15,
+    "scoreInferred" : false,
+    "rubric" : "15分，每个要点5分",
+    "referenceImages" : [ ]
+  }, {
+    "index" : 3,
+    "title" : "【第3题】 编写程序，定义一个抽象的学生类Student，该类有学生姓名、性别等数据成员，以及一个抽象的学习方法study()；定义3个学生子类Graduate、Undergraduate、Junior分别代表研究生类、本科生类和专科生类，并实现各自的study()具体方法。设计一个测试类，实现对不同类型学生的study()测试。要求：应用继承机制完成类设计；采用多态形式完成不同类型学生的测试。",
+    "description" : "{40分，根据功能完善度（70%），代码规范性（30%）给分}",
+    "referenceAnswer" : "abstract class Student {\n    String name;\n    String gender;\n    public Student(String name, String gender) {\n        this.name = name;\n        this.gender = gender;\n    }\n    public abstract void study();\n}\nclass Graduate extends Student {\n    public Graduate(String name, String gender) {\n        super(name, gender);\n    }\n    @Override\n    public void study() {\n        System.out.println(name + \" （研究专科生）在进行专业研究学习。\");\n    }\n}\nclass Undergraduate extends Student {\n    public Undergraduate(String name, String gender) {\n        super(name, gender);\n    }\n    @Override\n    public void study() {\n        System.out.println(name + \" （本专科生）在进行专业知识学习。\");\n    }\n}\nclass Junior extends Student {\n    public Junior(String name, String gender) {\n        super(name, gender);\n    }\n    @Override\n    public void study() {\n        System.out.println(name + \" （专科生）在进行基本知识学习。\");\n    }\n}\npublic class TestStudent {\n\tpublic static void main(String[] args) {\n        Student stu;\n        stu = new Graduate(\"李同学\", \"女\");\n        stu.study();\n        stu = new Undergraduate(\"张同学\", \"男\");\n        stu.study();\n        stu = new Junior(\"赵同学\", \"男\");\n        stu.study();\n\t}\n}",
+    "questionType" : "programming",
+    "maxScore" : 40,
+    "scoreInferred" : false,
+    "rubric" : "40分，根据功能完善度（70%），代码规范性（30%）给分",
+    "referenceImages" : [ ]
+  }, {
+    "index" : 4,
+    "title" : "【第4题】 编写程序,定义一个野生动物类,类中包含构造方法、实例变量(体型)和实例方法",
+    "description" : "(活动方式)、类变量(活动区域)和类方法(显示活动区域)。设计一个测试类完成各变量访\n问和方法调用的测试。要求:进行构造方法、实例方法和类方法的重载。\n{30分，根据功能完善度（70%），代码规范性（30%）给分}",
+    "referenceAnswer" : "class WildAnimal {\n    private String bodySize;  // 实例变量：体型\n    private static String activityArea = \"森林\";  // 类变量：活动区域\n    public WildAnimal(String bodySize) {  // 构造方法1\n        this.bodySize = bodySize;\n    }\n    public WildAnimal(String bodySize, String newActivityArea) {  // 构造方法2（重载）\n        this.bodySize = bodySize;\n        setActivityArea(newActivityArea);\n    }\n    public void move() {  // 实例方法1：活动方式\n        System.out.println(\"野生动物在\" + activityArea + \"里活动。\");\n    }\n    public void move(String extraInfo) {  // 实例方法2：活动方式（重载）\n        System.out.println(\"野生动物在\" + activityArea + \"里活动。\" + extraInfo);\n    }\n    public static void showActivityArea() {  // 类方法1：显示活动区域\n        System.out.println(\"野生动物的活动区域是：\" + activityArea);\n    }\n    public static void showActivityArea(String description) {  // 类方法2：显示活动区域（重载）\n        System.out.println(\"野生动物的活动区域是：\" + activityArea + \"。\" + description);\n    }\n    // 设置活动区域的方法（私有静态方法，仅供类内部使用）\n    private static void setActivityArea(String newActivityArea) {\n        activityArea = newActivityArea;\n    }\n}\npublic class TestAnimal {\n\tpublic static void main(String[] args) {\n        WildAnimal animal1 = new WildAnimal(\"大型\");  // 使用构造方法1创建对象\n        animal1.move();  // 调用实例方法1\n        WildAnimal animal2 = new WildAnimal(\"中型\", \"草原\");  // 使用构造方法2创建对象\n        animal2.move(\"它跑得很快。\");  // 调用实例方法2\n        WildAnimal.showActivityArea();  // 调用类方法1\n        WildAnimal.showActivityArea(\"这是一个适合野生动物生存的地方。\");  // 调用类方法2\n\t}\n}",
+    "questionType" : "programming",
+    "maxScore" : 30,
+    "scoreInferred" : false,
+    "rubric" : "30分，根据功能完善度（70%），代码规范性（30%）给分",
+    "referenceImages" : [ ]
+  } ]
+}

@@ -1,6 +1,8 @@
 # Java 与数据库作业智能批改系统
 
-基于 **LangChain4j + Spring Boot + RAG** 的智能化作业批改系统。支持上传 Word 作业文档，自动提取多道 Java 编程题或数据库 SQL 题，结合各自独立知识库中的评分标准，利用大语言模型进行逐题批改与综合评分。
+基于 **LangChain4j + Spring Boot + RAG** 的智能化作业批改系统。支持上传 Word 作业文档，逐题提取 Java 编程题、选择题、主观题、图片作答题或数据库 SQL 题，再按题型使用确定性答案对比或大语言模型进行批改。
+
+Windows 用户可从 [GitHub Releases](https://github.com/CyuYing/aes-agent-java/releases/latest) 下载 `AES-Agent-Windows.zip`，完整解压后双击 `start.cmd`；软件已内置 Java 运行时、MySQL 8、答案库与演示作业。
 
 ---
 
@@ -10,14 +12,22 @@
 
 ### 核心能力
 
-- **Word 作业文档解析** — 自动从 `.docx` 中提取多道编程题（题目要求 + 学生代码）
+- **答案库驱动批量批改** — 一份参考答案自动匹配多份学生作业，批量输出逐题得分、总分、排名与 CSV
+- **严格 100 分制** — 自动读取答案中的逐题分值；缺失分值自动补齐并标记，教师可手动调整但合计必须为 100
+- **逐题拆解与确认** — 从 `.docx` 的段落、表格和常见题号中提取每道题，批改前可预览并修正题型和答案
+- **选择题确定性批改** — 标准答案与学生答案按传统方式精确对比，不让大模型猜测得分
+- **逐题提示词** — 教师可为每道题分别填写评分侧重点和特殊要求
+- **图片与多模态批改** — 提取 Word 内嵌题图/学生答案图，支持上传参考答案图，先转写文字再进行参考图与学生图匹配
 - **题意符合性检查** — 判断代码是否满足题目要求，功能是否完整
 - **RAG 增强评分** — 自动检索评分标准和参考范例，评分有据可依
 - **多维度评价** — 是否符合题意（30）+ 代码规范（20）+ 逻辑正确性（20）+ 性能效率（15）+ 可维护性（15），百分制
-- **数据库作业批改** — 自动提取 SQL，使用 H2 内存库的 MySQL 兼容模式执行验证，结合执行证据评分
+- **数据库作业批改** — 自动提取 SQL，在权限隔离且每题重置的 MySQL 8 沙箱中真实执行，结合执行证据评分
 - **知识库隔离** — Java 知识库与数据库知识库分别管理，避免评分标准混用
 - **流式输出 (SSE)** — 实时显示每道题的批改过程
 - **透明可解释** — 展示检索到的原始文档片段，评分依据一目了然
+- **记录数据库与教师复核闭环** — MySQL 事务持久化整份/逐题结果，可组合查询“某学生某道题”，支持确认、标记调整和导出 UTF-8 CSV
+- **安全部署** — 单机版仅监听本机；Docker 版默认启用教师登录并仅绑定 `127.0.0.1`
+- **完整离线前端** — Markdown 渲染器随 JAR 打包，不依赖外部 CDN
 
 ### 技术栈
 
@@ -25,12 +35,13 @@
 |------|------|------|
 | 框架 | Spring Boot 3.5.3 | Java 17+ |
 | LLM SDK | LangChain4j 0.36.2 | OpenAI 兼容接口 |
-| LLM | DeepSeek Chat | 通过 `langchain4j-open-ai` 调用 |
-| Embedding | BGE-small-zh | 本地 ONNX 运行，中文优化，首次约下载 100MB |
+| LLM | Qwen / DeepSeek 等 | 通过 OpenAI 兼容接口调用；百炼 `qwen3.7-plus` 可同时处理文字与图片 |
+| Embedding | BGE-small-zh | 本地 ONNX 运行，模型随应用依赖打包，中文优化 |
 | 向量库 | Chroma / InMemory | 优先 Chroma，不可用时自动降级 |
-| 文档解析 | PDFBox + Tika | 支持 PDF、DOCX、TXT |
-| SQL 执行 | H2 Database | 内存数据库，MySQL 兼容模式 |
-| 前端 | 纯 HTML/CSS/JS | SSE + Fetch API，零依赖 |
+| 文档解析 | Apache POI + PDFBox + Tika | DOCX 逐段/表格/图片解析；知识库支持 PDF、DOCX、TXT |
+| 图片理解 | OpenAI 兼容视觉模型（可选） | 图片转写与参考答案图/学生答案图直接比对 |
+| 数据库 | MySQL 8 | 正式记录库 + 独立最低权限 SQL 作业沙箱；便携版自带 Server |
+| 前端 | HTML/CSS/JS + Marked WebJar | SSE + Fetch API；前端依赖随 JAR 离线打包 |
 
 ---
 
@@ -48,7 +59,7 @@
 
 页面分为左右两栏：
 - **左侧边栏**：知识库管理、评估类型选择、检索上下文显示开关
-- **右侧主区域**：两个功能 Tab ——「作业文档批改」和「数据库作业批改」
+- **右侧主区域**：两个功能 Tab ——「答案库批量批改」和「单份作业批改」。单份入口会自动识别 Java/数据库课程，也允许教师手动切换
 
 ![系统首页与 Java 作业批改工作台](docs/images/aes-home-java-homework.png)
 
@@ -75,7 +86,7 @@ Java作业评分标准_构造方法重载_Java17.txt
 
 点击左侧边栏的 **「同步 Java 知识库」** 或 **「同步数据库知识库」** 按钮，系统会自动加载文档、分块、向量化并建立索引。
 
-<img src="C:\Users\26594\AppData\Roaming\Typora\typora-user-images\image-20260524192002737.png" alt="image-20260524192002737" style="zoom:67%;" />
+![Java 与数据库知识库面板](docs/images/aes-knowledge-panels.png)
 
 同步完成后，左侧会显示已索引的片段数和文件列表。
 
@@ -83,41 +94,57 @@ Java作业评分标准_构造方法重载_Java17.txt
 
 ---
 
-### 3.3 Java 作业文档批改
+### 3.3 答案库批量批改（推荐）
 
-适用于批量批改学生提交的 Word 作业文档（含多道编程题）。
+项目已内置 `专业课程作业批改案例/`：Java 与数据库各包含一份参考答案和三份学生作业。
 
-#### 操作步骤
+1. 打开「答案库批量批改」，选择已有答案库；也可上传文件名包含“参考答案”的 DOCX 自动建库。
+2. 核对系统从“本题 X 分”等文字识别出的逐题分值。未写明的题会分配剩余分值并标记为推断；教师可编辑，但合计必须为 100。
+3. 一次选择多份学生 DOCX，或直接选择同一课程案例文件夹。系统自动排除参考答案并提取姓名、学号、班级。
+4. 先执行预检，确认每份作业的题号匹配；再开始批改。
+5. 页面实时展示逐题进度，完成后按成绩排名，可展开核对评分证据并导出 CSV。
 
-1. 切换到 **「作业文档批改」** Tab
-2. 点击或拖拽上传学生的 `.docx` 作业文档
-
-![image-20260524192027359](C:\Users\26594\AppData\Roaming\Typora\typora-user-images\image-20260524192027359.png)
-
-3. （可选）在左侧选择评估类型
-4. 点击 **「开始批改」** 按钮
-
-系统会自动解析文档、提取题目和代码，逐题调用 AI 进行批改：
-
-> **支持的文档格式**：系统通过正则识别 `【第2题】`、`第1题`、`1.`、`一、` 等常见题号格式切分题目。如果文档中没有明确题号，会将整个文档作为一道题进行批改。
+参考答案会同时保存到 `data/answer_keys/` 和课程知识库的 `reference_answers/` 子目录；知识库会递归索引这些文档。
 
 ---
 
-### 3.4 数据库作业文档批改
+### 3.4 Java 作业文档批改
+
+适用于批量批改学生提交的 Word 作业文档，可混合包含编程题、选择题、主观题和图片作答题。
+
+#### 操作步骤
+
+1. 切换到 **「单份作业批改」** Tab，课程识别保持“自动识别”或手动选择“Java 程序设计”
+2. 点击或拖拽上传学生的 `.docx` 作业文档
+
+![Java 作业上传与逐题配置](docs/images/aes-java-upload.png)
+
+3. 系统先拆解并展示每一道题；逐题确认题型、解析出的学生答案以及每张图片的角色
+4. 选择题填写标准答案；其他题可填写文字参考答案
+5. （可选）为每题填写定制提示词、上传一张或多张参考答案图片
+6. 点击 **「按逐题配置开始批改」** 按钮
+
+选择题采用本地确定性答案对比；编程题、主观题和图片作答题使用各题的提示词、RAG 上下文及图片处理证据进行评分。
+
+> **题目与图片识别**：系统识别 `【第2题】`、`第1题`、`1.`、`一、` 等题号；没有明确题号时将全文视为一题。图片会根据前面的“题图 / 学生答案 / 参考答案”等标记归入对应角色，教师可在预览中核对。
+
+---
+
+### 3.5 数据库作业文档批改
 
 适用于批量批改数据库 SQL 作业文档。文档建议包含题目要求、初始化 SQL 和学生 SQL。
 
 #### 操作步骤
 
-1. 切换到 **「数据库作业批改」** Tab
-2. 上传 `.docx` 数据库作业文档
+1. 切换到 **「单份作业批改」** Tab，课程识别保持“自动识别”或手动选择“数据库原理”
+2. 上传 `.docx` 数据库作业文档；自动识别成功后，页面会在同一入口切换为 SQL 执行核验模式
 3. 点击 **「开始批改数据库作业」** 按钮
 
-系统会自动解析 SQL、使用 H2 内存数据库的 MySQL 兼容模式执行验证，并把执行结果作为评分证据传给 AI。
+系统会自动解析 SQL、使用独立 MySQL 8 沙箱真实执行，并把执行结果作为评分证据传给 AI。沙箱账号无权读取正式批改记录库，且每道作业执行前后都会清理表和视图。
 
 ---
 
-### 3.5 查看批改结果
+### 3.6 查看批改结果
 
 批改完成后，页面会展示：
 
@@ -135,11 +162,123 @@ Java作业评分标准_构造方法重载_Java17.txt
 - **各维度得分**：是否符合题意、代码规范、逻辑正确性、性能与效率、可维护性
 - **详细评语**：Markdown 格式，包含总体评价、逐条问题清单、改进建议、代码片段对比
 
+### 3.7 批改记录与教师复核
+
+每次 Java、数据库或答案库批量批改成功后，整份结果与逐题明细会在同一事务中写入 MySQL `aes_agent` 数据库。旧版 `data/grading_records/*.json` 会在首次启动时幂等迁移，原文件保留为备份。左侧“批改记录”支持：
+
+- 查看文件、学生姓名、学号、班级、总分、时间和逐题评语；
+- 打开“详细查询数据库”，按课程、姓名、学号、班级、文件/内容关键词、日期、审核状态和整份分数区间组合筛选；
+- 切换到“逐题批改明细”，再按题号或题目/答案/评语关键词定位，例如直接查询“张三的第 3 题”；
+- 教师确认结果，或填写原因并标记为“需调整”；
+- 一键导出带 UTF-8 BOM 的 CSV，可直接用中文版 Excel 打开；
+- 便携包随 U 盘移动时，先停止服务再复制整个便携文件夹，MySQL 数据、凭据、答案库和历史记录会一并携带。
+
 ---
 
-## 四、部署指南
+## 四、部署与软件分发
 
-### 4.1 环境准备
+### 4.1 交付方式
+
+| 方式 | 目标电脑需要安装 | 适用场景 |
+|---|---|---|
+| Windows 便携软件 | 无需 JDK、Maven、MySQL、Python、Node.js 或 Chroma | U 盘、教室电脑、单机演示 |
+| Docker 一键部署 | Docker Desktop，或 Linux Docker + Compose | 服务器、长期运行、多人共用 |
+| 源码运行 | JDK 17+、Maven、MySQL 8 | 开发和二次修改 |
+
+Qwen、DeepSeek 等批改模型通过在线 API 调用。没有模型密钥时，程序仍可使用文档解析、答案库、题号匹配、选择题精确批改、知识库索引、MySQL 查询和 SQL 沙箱等本地功能。
+
+### 4.2 制作 Windows 便携软件
+
+制作电脑需要 JDK 17+、Maven 和 MySQL Server 8。双击：
+
+```text
+build-portable.cmd
+```
+
+默认生成：
+
+```text
+target/aes-agent-portable-windows/
+target/aes-agent-portable-windows.zip
+target/aes-agent-portable-windows.zip.sha256
+```
+
+也可以指定英文输出名：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+  -File .\packaging\build-portable.ps1 `
+  -OutputName AES-Agent-Windows
+```
+
+脚本会运行测试、构建 Spring Boot JAR、用 `jlink` 生成内置 Java 运行时，并复制 MySQL 8、前端依赖、本地嵌入模型、初始知识库、答案库和完整演示样例。ZIP 旁的 `.sha256` 文件用于校验传输完整性。
+
+### 4.3 在目标电脑或 U 盘运行
+
+1. 完整解压 ZIP，不要直接在压缩包内运行；
+2. 可先双击 `doctor.cmd` 检查运行时、目录写权限和端口；
+3. 双击 `start.cmd`，按提示输入模型 API Key，也可直接回车只使用本地功能；
+4. 百炼新版 `sk-ws-` Key 会自动配置 `qwen3.7-plus` 的文字和图片批改；密钥只传给当前进程，不写入包内文件；
+5. 首次运行会初始化包内 MySQL，生成随机数据库凭据，并创建互相隔离的正式记录库与 SQL 作业沙箱；
+6. 健康检查通过后访问 `http://127.0.0.1:8080/`；
+7. 移动文件夹、复制到 U 盘或关机前，双击 `stop.cmd` 安全停止应用与 MySQL。
+
+便携软件目录结构：
+
+```text
+AES-Agent-Windows/
+├─ start.cmd                         双击启动
+├─ stop.cmd                          安全停止应用和 MySQL
+├─ doctor.cmd                        自检运行环境和端口
+├─ README.md                         本说明
+├─ VERSION.txt                       版本与构建信息
+├─ app/aes-agent.jar                 后端、前端与 Java 依赖
+├─ config/application.properties    便携版固定配置
+├─ runtime/                          内置 Java 运行时
+├─ mysql/                            内置 MySQL 8 Server
+├─ scripts/                          启动、停止和自检脚本
+├─ samples/                          Java、数据库及多模态演示作业
+├─ data/
+│  ├─ java_knowledge_base/           Java 评分资料
+│  ├─ database_knowledge_base/       数据库评分资料
+│  ├─ answer_keys/                   结构化答案库
+│  ├─ grading_records/               旧 JSON 迁移/备份目录
+│  └─ mysql/                         首次运行后生成的数据库状态
+├─ logs/                             应用与 MySQL 日志
+└─ run/                              进程号等临时状态
+```
+
+`start.cmd` 先启动包内 `mysqld.exe`，首次运行时立即设置随机强密码并创建最低权限账号；随后启动 Java 应用并轮询 `/api/health`。进程号写入 `run/`，因此 `stop.cmd` 能精确关闭两个进程。MySQL 默认只监听 `127.0.0.1:3307`。
+
+U 盘或换电脑时必须复制整个文件夹。批改历史在 `data/mysql/data/`，随机凭据在 `data/mysql/credentials.properties`，二者必须一起保留。建议使用可写的 NTFS U 盘、英文目录名，并放在盘符根目录，例如 `E:\AES-Agent-Windows`。端口冲突时可设置 `PORT` 或 `MYSQL_PORT`。
+
+### 4.4 完整功能演示
+
+建议按以下顺序演示：
+
+1. 运行 `doctor.cmd`，再运行 `start.cmd`；需要 AI 和多模态能力时输入可用模型密钥；
+2. 进入“答案库批量批改”，选择 Java 或数据库答案库，核对逐题分值与总分 `100/100`；
+3. 选择 `samples/专业课程作业批改案例/Java程序设计` 或 `数据库原理` 整个文件夹；系统自动排除参考答案、识别三名学生并完成 `4/4` 题目匹配；
+4. 开始批量批改，查看 SSE 实时进度、排名、逐题评分路径、RAG 依据和 CSV 导出；
+5. 上传 `samples/Java完整功能演示作业.docx`，演示选择题精确判定、代码评分、主观题和 Word 内嵌图片；第 4 题可上传 `samples/第4题参考答案图.png` 做多模态核验；
+6. 上传 `samples/数据库完整功能演示作业.docx`，演示 JOIN、聚合查询、结果表格和危险 SQL 拦截；
+7. 打开“详细查询数据库”，按姓名、学号、班级、课程、日期、成绩、审核状态组合查询，再切换到逐题模式定位某学生某一道题；
+8. 演示教师确认、标记调整和 CSV 导出，最后运行 `stop.cmd`。
+
+演示覆盖：答案自动建库、分值识别与人工补齐、严格 100 分、Java/数据库批量批改、知识库同步、DOCX 多题拆分、确定性选择题、多模态图片、SQL 真实执行与安全拦截、MySQL 持久化、题目级查询和教师复核。
+
+### 4.5 Docker 一键部署
+
+Windows 安装并启动 Docker Desktop 后双击 `deploy.cmd`；Linux/macOS 执行：
+
+```bash
+chmod +x deploy.sh stop.sh
+./deploy.sh
+```
+
+停止服务使用 `stop.cmd` 或 `./stop.sh`。首次部署会从 `.env.example` 生成本机 `.env`，自动配置应用、MySQL、Chroma、健康检查和持久化卷。`.env` 不得提交或放入分发包。
+
+### 4.6 源码环境准备
 
 #### JDK 17+
 
@@ -177,7 +316,7 @@ chroma --version
 
 ---
 
-### 4.2 获取代码
+### 4.7 获取代码
 
 ```bash
 # 克隆仓库（或下载源码压缩包解压）
@@ -187,25 +326,26 @@ cd aes-agent-java
 
 ---
 
-### 4.3 配置修改
+### 4.8 配置修改
 
 编辑 `src/main/resources/application.properties`：
 
 ```properties
 # ==========================================
-# 必填：DeepSeek API Key
+# 推荐：统一的文字/图片批改模型（百炼示例）
 # ==========================================
-# 方式一：直接写入（仅本地测试，生产环境建议用环境变量）
-deepseek.api.key=sk-your-api-key-here
-
-# 方式二：使用环境变量（推荐）
-# deepseek.api.key=${DEEPSEEK_API_KEY}
+grading.api.key=${GRADING_API_KEY:}
+grading.base.url=${GRADING_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+grading.model.name=${GRADING_MODEL:qwen3.7-plus}
 
 # ==========================================
-# 可选：DeepSeek 基础配置
+# 可选：OpenAI 兼容的多模态视觉模型
+# 默认关闭；启用后执行图片转写和参考图/学生图匹配
 # ==========================================
-deepseek.base.url=https://api.deepseek.com
-deepseek.model.name=deepseek-chat
+vision.enabled=${VISION_ENABLED:false}
+vision.api.key=${VISION_API_KEY:disabled}
+vision.base.url=${VISION_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+vision.model.name=${VISION_MODEL:qwen3.7-plus}
 
 # ==========================================
 # 可选：Chroma 向量库
@@ -219,21 +359,41 @@ chroma.database.collection.name=aes-database-knowledge
 # ==========================================
 aes.java.knowledge-base.path=data/java_knowledge_base
 aes.database.knowledge-base.path=data/database_knowledge_base
+aes.answer-keys.path=${AES_ANSWER_KEYS_PATH:data/answer_keys}
+aes.grading-records.path=${AES_GRADING_RECORDS_PATH:data/grading_records}
+
+# MySQL 正式记录库（必填；不提供其他本地数据库回退）
+aes.grading-database.url=${AES_GRADING_DATABASE_URL:jdbc:mysql://127.0.0.1:3307/aes_agent?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+aes.grading-database.username=${AES_GRADING_DATABASE_USERNAME:aes_agent}
+aes.grading-database.password=${AES_GRADING_DATABASE_PASSWORD:}
+
+# MySQL SQL 作业沙箱，必须使用与正式库不同且仅获沙箱库权限的账号
+aes.sql-sandbox.url=${AES_SQL_SANDBOX_URL:jdbc:mysql://127.0.0.1:3307/aes_sql_sandbox?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+aes.sql-sandbox.username=${AES_SQL_SANDBOX_USERNAME:aes_sandbox}
+aes.sql-sandbox.password=${AES_SQL_SANDBOX_PASSWORD:}
+
+# 共享/服务器部署时开启；便携单机版默认关闭且仅监听 127.0.0.1
+aes.security.enabled=${AES_SECURITY_ENABLED:false}
+aes.security.username=${AES_SECURITY_USERNAME:teacher}
+aes.security.password=${AES_SECURITY_PASSWORD:}
 
 # ==========================================
 # 可选：服务端口
 # ==========================================
 server.port=8080
+
+# 上传多个参考答案图片时提高整次请求上限
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=200MB
 ```
 
-**获取 DeepSeek API Key：**
-1. 访问 [DeepSeek 开放平台](https://platform.deepseek.com/)
-2. 注册/登录后进入「API Keys」页面
-3. 创建新 Key 并复制
+`VISION_BASE_URL` 可指向任意实现 OpenAI Chat Completions 图片输入格式的服务。视觉功能关闭或调用失败时，系统会在单题结果中明确显示失败原因，不会虚构图片内容。
+
+直接从源码运行时必须先准备 MySQL 8，并创建 `aes_agent`、`aes_sql_sandbox` 两个数据库和权限隔离的账号。普通 Windows 使用者无需手工配置：便携包会自动初始化内置 MySQL；Docker 部署脚本也会自动创建数据库、账号和随机密码。
 
 ---
 
-### 4.4 构建打包
+### 4.9 构建打包
 
 ```bash
 # 清理并编译
@@ -252,7 +412,7 @@ target/
 
 ---
 
-### 4.5 启动应用
+### 4.10 启动应用
 
 #### 开发模式（热重载，适合调试）
 
@@ -264,15 +424,15 @@ mvn spring-boot:run
 
 ```bash
 # 设置环境变量后启动（Linux/macOS）
-export DEEPSEEK_API_KEY=sk-your-api-key
+export GRADING_API_KEY=your-model-api-key
 java -jar target/aes-agent-1.0.0.jar
 
 # Windows PowerShell
-$env:DEEPSEEK_API_KEY="sk-your-api-key"
+$env:GRADING_API_KEY="your-model-api-key"
 java -jar target/aes-agent-1.0.0.jar
 
 # Windows CMD
-set DEEPSEEK_API_KEY=sk-your-api-key
+set GRADING_API_KEY=your-model-api-key
 java -jar target/aes-agent-1.0.0.jar
 ```
 
@@ -288,13 +448,13 @@ curl http://localhost:8080/api/knowledge/stats
 {"chunkCount":0,"fileCount":0,"files":[],"metadata":[]}
 ```
 
-**首次启动注意：** 会自动下载 BGE-small-zh 嵌入模型（约 100MB），需等待 1-2 分钟。看到 `Tomcat started on port 8080` 即表示启动成功。
+**首次启动注意：** BGE-small-zh 模型已包含在应用依赖中，不会在目标电脑再次下载；首次建立知识库索引可能需要几十秒。看到 `Tomcat started on port 8080` 即表示启动成功。
 
 访问前端：`http://localhost:8080`
 
 ---
 
-### 4.6 （可选）启动 Chroma 向量库
+### 4.11 （可选）启动 Chroma 向量库
 
 在另一个终端中执行：
 
@@ -315,7 +475,7 @@ Chroma 连接失败, 回退到 InMemoryEmbeddingStore
 
 ---
 
-### 4.7 初始化知识库
+### 4.12 初始化知识库
 
 1. **准备评分标准文档**
    
@@ -351,22 +511,23 @@ Chroma 连接失败, 回退到 InMemoryEmbeddingStore
 
 ---
 
-### 4.8 功能验证
+### 4.13 功能验证
 
 #### Java 作业文档批改测试
 
-切换到「作业文档批改」Tab，上传 `.docx` 作业文档，点击「开始批改」。
+切换到「单份作业批改」Tab，保持自动识别或选择“Java 程序设计”，上传 `.docx` 作业文档，确认拆分出的每道题后开始批改。
 
 或调用 API：
 ```bash
 curl -X POST http://localhost:8080/api/homework/grade \
   -F "file=@作业样本.docx" \
-  -F "category=general"
+  -F "category=general" \
+  -F 'configs=[{"index":1,"questionType":"choice","correctAnswer":"B","customPrompt":"","studentAnswer":"B"}]'
 ```
 
 #### 数据库作业文档批改测试
 
-切换到「数据库作业批改」Tab，上传包含题目、初始化 SQL 和学生 SQL 的 `.docx` 作业文档，点击「开始批改」。系统会为每道题创建独立 H2 内存数据库执行 SQL，并在结果中展示执行证据。
+切换到「单份作业批改」Tab，保持自动识别或选择“数据库原理”，上传包含题目、初始化 SQL 和学生 SQL 的 `.docx` 作业文档，点击「开始批改数据库作业」。系统会在隔离 MySQL 沙箱中执行 SQL，每题开始与结束时重置沙箱，并在统一结果区展示执行证据。
 
 或调用 API：
 ```bash
@@ -382,14 +543,29 @@ curl -X POST http://localhost:8080/api/database/homework/grade \
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | `GET` | `/` | 前端页面 |
+| `GET` | `/api/health` | 服务健康检查 |
 | `GET` | `/api/knowledge/stats` | 知识库状态 |
 | `POST` | `/api/knowledge/sync` | 重建知识库索引 |
+| `GET` | `/api/answer-keys` | 查询结构化答案库 |
+| `POST` | `/api/answer-keys` | 导入参考答案并自动识别课程、题目与分值 |
+| `PATCH` | `/api/answer-keys/{id}/scores` | 教师调整逐题分值（合计必须为 100） |
+| `POST` | `/api/batch/preview` | 批量作业身份与题号匹配预检 |
+| `POST` | `/api/batch/grade/stream` | 答案库驱动的批量批改 SSE |
+| `POST` | `/api/homework/parse` | 解析 DOCX，自动识别 Java/数据库课程并返回逐题预览（含图片角色） |
 | `POST` | `/api/homework/grade` | 作业文档同步批改（multipart） |
 | `POST` | `/api/homework/grade/stream` | 作业文档流式批改 SSE（逐题推送） |
 | `GET` | `/api/database/knowledge/stats` | 数据库知识库状态 |
 | `POST` | `/api/database/knowledge/sync` | 重建数据库知识库索引 |
 | `POST` | `/api/database/homework/grade` | 数据库作业文档同步批改（multipart） |
 | `POST` | `/api/database/homework/grade/stream` | 数据库作业文档流式批改 SSE（逐题推送） |
+| `GET` | `/api/grading/records` | 查询批改记录摘要 |
+| `GET` | `/api/grading/records/search` | 组合查询整份记录（学生、课程、日期、分数、题号/题目关键词等） |
+| `GET` | `/api/grading/questions/search` | 查询逐题明细，可定位某学生某道题 |
+| `GET` | `/api/grading/storage` | 查询 MySQL 引擎、数据库名、记录数和题目数 |
+| `GET` | `/api/grading/records/{id}` | 查看完整批改记录 |
+| `GET` | `/api/grading/records/{id}/questions/{questionIndex}` | 直接读取某条记录中的指定题目 |
+| `PATCH` | `/api/grading/records/{id}/review` | 保存教师审核状态与意见 |
+| `GET` | `/api/grading/records/export.csv` | 导出全部批改记录 CSV |
 
 ### 请求示例
 
@@ -397,7 +573,12 @@ curl -X POST http://localhost:8080/api/database/homework/grade \
 # Java 作业文档批改
 curl -X POST http://localhost:8080/api/homework/grade \
   -F "file=@作业.docx" \
-  -F "category=algorithm"
+  -F "category=algorithm" \
+  -F 'configs=[{"index":1,"questionType":"programming","correctAnswer":"","customPrompt":"重点检查异常处理","studentAnswer":""}]'
+
+# 如需给第 1 题附加参考答案图，再增加：
+# -F "referenceImages=@第1题参考答案.png" \
+# -F "referenceImageQuestionIndexes=1"
 
 # 数据库作业文档批改
 curl -X POST http://localhost:8080/api/database/homework/grade \
@@ -448,8 +629,8 @@ kill -9 <PID>
 
 ### API 调用返回 500 / AI 评分无输出
 
-- 检查 `application.properties` 中的 `deepseek.api.key` 是否已正确配置
-- 确认 API Key 是否有效（DeepSeek 平台余额是否充足）
+- 检查 `GRADING_API_KEY`（或兼容旧版的 `DEEPSEEK_API_KEY`）是否已正确配置
+- 确认 API Key、模型名称、服务地址、网络与账户余额是否正常
 - 查看应用控制台日志中的具体错误信息
 
 ### Chroma 连接失败
@@ -478,22 +659,36 @@ kill -9 <PID>
 用户上传 Word 作业文档
     │
     ▼
+AnswerKeyService / BatchGradingService
+    │  ├─ 从参考答案提取题号、答案、评分细则和逐题分值
+    │  ├─ 分值缺失时补齐；保存/批改前严格校验合计 100
+    │  └─ 多份作业按明确题号优先、题干相似度兜底完成匹配
+    │
+    ▼
 DocumentParserService / DatabaseDocumentParserService
-    │  ├─ Tika 提取全文
-    │  ├─ Java：切分题目与代码
+    │  ├─ Apache POI 按段落/表格读取题号、作答及 DrawingML/VML 图片
+    │  ├─ Java：逐题预览并由教师确认题型、标准答案、提示词、参考图
     │  └─ 数据库：切分题目、初始化 SQL、学生 SQL
     │
     ▼
 HomeworkService / DatabaseHomeworkService
     │  ├─ 对每道题：
-    │  │   ├─ Java：检索 Java 知识库，构建题目 + 学生代码评分上下文
-    │  │   ├─ 数据库：先用 H2 MySQL 模式执行 SQL，收集执行证据
+    │  │   ├─ 选择题：ChoiceGradingService 直接对比答案
+    │  │   ├─ 图片题：图片转文字 + 参考图/学生图多模态匹配
+    │  │   ├─ 其他 Java 题：检索知识库，合并逐题提示词与评分证据
+    │  │   ├─ 数据库：先在隔离 MySQL 8 沙箱执行 SQL，收集执行证据
     │  │   ├─ 检索对应学科知识库，构建 Prompt
-    │  │   └─ DeepSeek Chat API → JSON 结构化评分结果
+    │  │   └─ OpenAI 兼容模型 API → JSON 结构化评分结果
     │  └─ 汇总所有题目得分 → HomeworkResult / DatabaseHomeworkResult
     │
     ▼
-前端展示：总分卡片 + 逐题详情 + SQL 执行证据 + RAG 来源
+GradingRecordService 事务写入 MySQL（整份记录 + 逐题索引）
+    │  ├─ 旧 JSON 自动迁移并保留备份
+    │  ├─ 学生/班级/课程/时间/分数/审核状态组合查询
+    │  └─ 题号 + 题目/答案/评语全文匹配 → 教师复核 → CSV 导出
+    │
+    ▼
+前端展示：总分卡片 + 逐题评分方式 + 图片证据 + SQL 执行证据 + RAG 来源 + 历史复核
 ```
 
 ---
@@ -506,7 +701,10 @@ aes-agent-java/
 ├── README.md
 ├── data/
 │   ├── java_knowledge_base/                   # Java 知识库文档（评分标准 / 参考范例）
-│   └── database_knowledge_base/               # 数据库知识库文档（评分标准 / 参考范例）
+│   ├── database_knowledge_base/               # 数据库知识库文档（评分标准 / 参考范例）
+│   ├── answer_keys/                           # 结构化答案库 JSON 与参考答案源文件
+│   └── grading_records/                       # 旧 JSON 迁移/备份目录（正式数据在 MySQL）
+├── 专业课程作业批改案例/                      # Java/数据库各 1 份答案 + 3 份作业
 └── src/
     └── main/
         ├── java/com/aes/
@@ -523,10 +721,13 @@ aes-agent-java/
         │       ├── DocumentParserService.java
         │       ├── DatabaseDocumentParserService.java
         │       ├── DatabaseExecutionService.java
+        │       ├── ChoiceGradingService.java   # 选择题确定性答案对比
+        │       ├── ImageDescriptionService.java # 图片转写与多模态匹配
         │       ├── HomeworkService.java
-        │       └── DatabaseHomeworkService.java
+        │       ├── DatabaseHomeworkService.java
+        │       └── GradingRecordService.java   # MySQL 整份/逐题持久化、精细查询、复核与导出
         └── resources/
-            ├── application.properties          # 应用配置
+            ├── application-example.properties  # 应用配置模板
             └── static/
                 └── index.html                  # 前端 UI（Java/数据库作业批改）
 ```
@@ -535,7 +736,11 @@ aes-agent-java/
 
 ## 十、注意事项
 
-- 首次启动会下载 BGE-small-zh 模型（约 100MB），需等待 1-2 分钟
+- BGE-small-zh 模型、Markdown 前端组件和 Java 依赖均随便携包提供；AI 文本/图片批改仍需访问所配置的在线模型服务
 - Java 知识库位于 `data/java_knowledge_base/`，数据库知识库位于 `data/database_knowledge_base/`，放入评分标准文档后需分别点击同步
-- Java 作业批改基于 LLM 静态分析；数据库作业会先在 H2 内存库的 MySQL 兼容模式执行 SQL，再结合执行证据与 RAG 上下文评分
+- Java 作业批改基于 LLM 静态分析；数据库作业会先在权限隔离的 MySQL 8 沙箱真实执行 SQL，再结合执行证据与 RAG 上下文评分
+- 选择题和完全一致的参考答案可确定性判定；图片批改需配置支持图片输入的 OpenAI 兼容视觉模型
+- 批改历史全部使用 MySQL；便携版自带 MySQL Server。移动或备份前应先运行 `stop.cmd`，再完整复制整个便携文件夹，尤其是 `data/mysql/data/` 与 `data/mysql/credentials.properties`
+- API Key 只通过环境变量或本机未提交的配置文件提供；如果密钥曾出现在文档、聊天或版本历史中，应立即在服务商控制台撤销并重建
+- `.env` 和本地密钥配置已加入忽略规则；不要把任何真实密钥复制进公开分发包
 - AI 评分结果仅供教学参考，不作为正式考试成绩

@@ -32,6 +32,19 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!-- Optional HTTP Basic authentication for shared/server deployments -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!-- Bundled Markdown renderer: the portable package works without a CDN. -->
+        <dependency>
+            <groupId>org.webjars.npm</groupId>
+            <artifactId>marked</artifactId>
+            <version>12.0.2</version>
+        </dependency>
+
         <!-- LangChain4j Core -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
@@ -60,6 +73,13 @@
             <version>${langchain4j.version}</version>
         </dependency>
 
+        <!-- DOCX structure and embedded-image extraction -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.2.3</version>
+        </dependency>
+
         <!-- BGE-small-zh Chinese Embedding (local, ~100MB) -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
@@ -74,10 +94,10 @@
             <version>${langchain4j.version}</version>
         </dependency>
 
-        <!-- H2 in-memory database for SQL homework execution -->
+        <!-- MySQL stores grading history and provides the isolated SQL sandbox. -->
         <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
         </dependency>
 
         <!-- Spring Boot DevTools (optional) -->
@@ -92,6 +112,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

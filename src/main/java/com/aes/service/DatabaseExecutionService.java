@@ -1,9 +1,11 @@
 package com.aes.service;
 
 import com.aes.model.Dto;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -13,7 +15,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 @Service
@@ -24,11 +25,25 @@ public class DatabaseExecutionService {
     private static final int QUERY_TIMEOUT_SECONDS = 5;
 
     private static final Pattern FORBIDDEN_SQL = Pattern.compile(
-            "(?is)\\b(CREATE\\s+ALIAS|RUNSCRIPT|SCRIPT\\s+TO|BACKUP|CSVREAD\\s*\\(|CSVWRITE\\s*\\(|" +
-                    "FILE_READ\\s*\\(|FILE_WRITE\\s*\\(|LINKED\\s+TABLE|SHUTDOWN)"
+            "(?is)(?:\\b(?:LOAD\\s+DATA|LOAD_FILE|FILE_READ|INTO\\s+(?:OUTFILE|DUMPFILE)|" +
+                    "CREATE\\s+(?:DATABASE|SCHEMA|USER|ROLE|PROCEDURE|FUNCTION|TRIGGER|EVENT|SERVER)|" +
+                    "DROP\\s+(?:DATABASE|SCHEMA|USER|ROLE|SERVER)|ALTER\\s+USER|GRANT|REVOKE|" +
+                    "SET\\s+(?:GLOBAL|PERSIST|PASSWORD)|RESET\\s+MASTER|PURGE\\s+BINARY|" +
+                    "KILL|SHUTDOWN|RESTART|INSTALL\\s+PLUGIN|UNINSTALL\\s+PLUGIN|CLONE|" +
+                    "LOCK\\s+INSTANCE|UNLOCK\\s+INSTANCE|PREPARE|EXECUTE|DEALLOCATE\\s+PREPARE|" +
+                    "HANDLER|USE)\\b|(?:`?)(?:mysql|information_schema|performance_schema|sys)(?:`?)\\s*\\.)"
     );
 
-    public Dto.SqlExecutionResult execute(String setupSql, String answerSql) {
+    @Value("${aes.sql-sandbox.url:${AES_SQL_SANDBOX_URL:jdbc:mysql://127.0.0.1:3307/aes_sql_sandbox?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}}")
+    private String sandboxUrl;
+
+    @Value("${aes.sql-sandbox.username:${AES_SQL_SANDBOX_USERNAME:aes_sandbox}}")
+    private String sandboxUsername;
+
+    @Value("${aes.sql-sandbox.password:${AES_SQL_SANDBOX_PASSWORD:}}")
+    private String sandboxPassword;
+
+    public synchronized Dto.SqlExecutionResult execute(String setupSql, String answerSql) {
         List<String> setupStatements = splitSqlStatements(setupSql);
         List<String> answerStatements = splitSqlStatements(answerSql);
         List<String> allStatements = new ArrayList<>();
@@ -42,25 +57,48 @@ public class DatabaseExecutionService {
             return new Dto.SqlExecutionResult(false, results, reason);
         }
 
-        String dbName = "aes_db_homework_" + UUID.randomUUID().toString().replace("-", "");
-        String url = "jdbc:h2:mem:" + dbName + ";MODE=MySQL;DATABASE_TO_UPPER=false;NON_KEYWORDS=USER";
+        for (String sql : allStatements) {
+            if (FORBIDDEN_SQL.matcher(sql).find()) {
+                String reason = "SQL 包含禁止执行的高风险语句";
+                results.add(failedStatement(sql, reason));
+                return new Dto.SqlExecutionResult(false, results, reason);
+            }
+        }
+
         boolean success = true;
         StringBuilder errors = new StringBuilder();
 
-        try (Connection conn = DriverManager.getConnection(url);
-             Statement statement = conn.createStatement()) {
-            statement.setQueryTimeout(QUERY_TIMEOUT_SECONDS);
+        try {
+            validateConfiguration();
+            try (Connection conn = DriverManager.getConnection(
+                    sandboxUrl, sandboxUsername, sandboxPassword)) {
+                validateSandboxConnection(conn);
+                clearSandbox(conn);
+                try (Statement statement = conn.createStatement()) {
+                    statement.setQueryTimeout(QUERY_TIMEOUT_SECONDS);
+                    statement.execute("SET SESSION MAX_EXECUTION_TIME="
+                            + (QUERY_TIMEOUT_SECONDS * 1000));
 
-            for (String sql : allStatements) {
-                Dto.SqlStatementResult result = executeOne(statement, sql);
-                results.add(result);
-                if (!result.success()) {
-                    success = false;
-                    if (!errors.isEmpty()) errors.append("; ");
-                    errors.append(result.error());
+                    for (String sql : allStatements) {
+                        Dto.SqlStatementResult result = executeOne(statement, sql);
+                        results.add(result);
+                        if (!result.success()) {
+                            success = false;
+                            if (!errors.isEmpty()) errors.append("; ");
+                            errors.append(result.error());
+                        }
+                    }
+                } finally {
+                    try {
+                        clearSandbox(conn);
+                    } catch (SQLException cleanupError) {
+                        success = false;
+                        if (!errors.isEmpty()) errors.append("; ");
+                        errors.append("清理 MySQL 沙箱失败: ").append(cleanupError.getMessage());
+                    }
                 }
             }
-        } catch (SQLException e) {
+        } catch (SQLException | IllegalStateException e) {
             success = false;
             String reason = e.getMessage();
             if (!errors.isEmpty()) errors.append("; ");
@@ -69,6 +107,63 @@ public class DatabaseExecutionService {
         }
 
         return new Dto.SqlExecutionResult(success, results, errors.toString());
+    }
+
+    private void validateConfiguration() {
+        if (sandboxUrl == null || !sandboxUrl.toLowerCase().startsWith("jdbc:mysql://")) {
+            throw new IllegalStateException("SQL 沙箱必须配置 jdbc:mysql:// URL");
+        }
+        if (sandboxUsername == null || sandboxUsername.isBlank()
+                || sandboxPassword == null || sandboxPassword.isBlank()) {
+            throw new IllegalStateException("MySQL SQL 沙箱账号或密码未配置");
+        }
+    }
+
+    private void validateSandboxConnection(Connection connection) throws SQLException {
+        DatabaseMetaData metadata = connection.getMetaData();
+        String product = metadata.getDatabaseProductName();
+        if (product == null || !product.toLowerCase().contains("mysql")) {
+            throw new SQLException("SQL 执行环境不是 MySQL");
+        }
+        String catalog = connection.getCatalog();
+        if (catalog == null || catalog.isBlank()) {
+            throw new SQLException("SQL 沙箱 URL 必须指定独立数据库");
+        }
+        if (!"aes_sql_sandbox".equalsIgnoreCase(catalog)) {
+            throw new SQLException("SQL 作业只能在 aes_sql_sandbox 独立数据库中执行");
+        }
+    }
+
+    private void clearSandbox(Connection connection) throws SQLException {
+        List<String> views = new ArrayList<>();
+        List<String> tables = new ArrayList<>();
+        String catalog = connection.getCatalog();
+        try (ResultSet rows = connection.getMetaData().getTables(
+                catalog, null, "%", new String[]{"TABLE", "VIEW"})) {
+            while (rows.next()) {
+                String name = rows.getString("TABLE_NAME");
+                String type = rows.getString("TABLE_TYPE");
+                if ("VIEW".equalsIgnoreCase(type)) views.add(name);
+                else tables.add(name);
+            }
+        }
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("SET FOREIGN_KEY_CHECKS=0");
+            try {
+                for (String view : views) {
+                    statement.execute("DROP VIEW IF EXISTS " + quoteIdentifier(view));
+                }
+                for (String table : tables) {
+                    statement.execute("DROP TABLE IF EXISTS " + quoteIdentifier(table));
+                }
+            } finally {
+                statement.execute("SET FOREIGN_KEY_CHECKS=1");
+            }
+        }
+    }
+
+    private String quoteIdentifier(String value) {
+        return "`" + value.replace("`", "``") + "`";
     }
 
     public List<String> splitSqlStatements(String sql) {

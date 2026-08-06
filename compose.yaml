@@ -1,0 +1,113 @@
+name: aes-agent
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:?请先运行 deploy.cmd 或在 .env 中配置 MYSQL_ROOT_PASSWORD}"
+      MYSQL_DATABASE: aes_agent
+      MYSQL_USER: aes_agent
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD:?请先运行 deploy.cmd 或在 .env 中配置 MYSQL_PASSWORD}"
+      MYSQL_SANDBOX_PASSWORD: "${MYSQL_SANDBOX_PASSWORD:?请先运行 deploy.cmd 或在 .env 中配置 MYSQL_SANDBOX_PASSWORD}"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./deploy/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_ROOT_PASSWORD mysqladmin ping -h 127.0.0.1 -uroot --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  chroma:
+    image: chromadb/chroma:0.5.23
+    restart: unless-stopped
+    environment:
+      IS_PERSISTENT: "TRUE"
+      PERSIST_DIRECTORY: /chroma/chroma
+      ANONYMIZED_TELEMETRY: "FALSE"
+    volumes:
+      - chroma-data:/chroma/chroma
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/heartbeat', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  app:
+    image: aes-agent:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      chroma:
+        condition: service_healthy
+    ports:
+      - "${APP_BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-8080}:8080"
+    environment:
+      SERVER_PORT: 8080
+      AES_SECURITY_ENABLED: "${AES_SECURITY_ENABLED:-true}"
+      AES_SECURITY_USERNAME: "${AES_SECURITY_USERNAME:-teacher}"
+      AES_SECURITY_PASSWORD: "${AES_SECURITY_PASSWORD:-}"
+      AES_GRADING_RECORDS_PATH: /app/data/grading_records
+      AES_GRADING_DATABASE_URL: "jdbc:mysql://mysql:3306/aes_agent?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true"
+      AES_GRADING_DATABASE_USERNAME: aes_agent
+      AES_GRADING_DATABASE_PASSWORD: "${MYSQL_PASSWORD:?请先运行 deploy.cmd 或在 .env 中配置 MYSQL_PASSWORD}"
+      AES_SQL_SANDBOX_URL: "jdbc:mysql://mysql:3306/aes_sql_sandbox?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true"
+      AES_SQL_SANDBOX_USERNAME: aes_sandbox
+      AES_SQL_SANDBOX_PASSWORD: "${MYSQL_SANDBOX_PASSWORD:?请先运行 deploy.cmd 或在 .env 中配置 MYSQL_SANDBOX_PASSWORD}"
+      AES_ANSWER_KEYS_PATH: /app/data/answer_keys
+      DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY:-not-configured}"
+      DEEPSEEK_BASE_URL: "${DEEPSEEK_BASE_URL:-https://api.deepseek.com}"
+      DEEPSEEK_MODEL: "${DEEPSEEK_MODEL:-deepseek-v4-flash}"
+      GRADING_API_KEY: "${GRADING_API_KEY:-}"
+      GRADING_BASE_URL: "${GRADING_BASE_URL:-}"
+      GRADING_MODEL: "${GRADING_MODEL:-}"
+      VISION_ENABLED: "${VISION_ENABLED:-false}"
+      VISION_API_KEY: "${VISION_API_KEY:-disabled}"
+      VISION_BASE_URL: "${VISION_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}"
+      VISION_MODEL: "${VISION_MODEL:-qwen3.7-plus}"
+      CHROMA_ENABLED: "true"
+      CHROMA_BASE_URL: http://chroma:8000
+      CHROMA_JAVA_COLLECTION: aes-java-knowledge
+      CHROMA_DATABASE_COLLECTION: aes-database-knowledge
+      AES_JAVA_KNOWLEDGE_BASE_PATH: /app/data/java_knowledge_base
+      AES_DATABASE_KNOWLEDGE_BASE_PATH: /app/data/database_knowledge_base
+      JAVA_OPTS: "${JAVA_OPTS:--XX:MaxRAMPercentage=75 -Dfile.encoding=UTF-8 -Djava.io.tmpdir=/app/tmp}"
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+    stop_grace_period: 30s
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  chroma-data:
+  mysql-data:

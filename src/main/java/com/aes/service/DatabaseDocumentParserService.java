@@ -24,7 +24,7 @@ public class DatabaseDocumentParserService {
     );
 
     private static final Pattern CODE_BLOCK = Pattern.compile(
-            "```(?:sql|mysql|h2|\\w*)?\\s*\\n(.*?)```",
+            "```(?:sql|mysql|\\w*)?\\s*\\n(.*?)```",
             Pattern.DOTALL | Pattern.CASE_INSENSITIVE
     );
 
