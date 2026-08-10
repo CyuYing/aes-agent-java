@@ -12,6 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Service
@@ -60,7 +61,7 @@ public class DatabaseHomeworkService {
 
             ## 评分原则
             1. 优先参考系统实际执行证据：语法错误、运行错误、查询结果为空或字段不符，都必须反映在评分中。
-            2. H2 使用 MySQL 兼容模式执行，若只是方言细节差异，请在评语中说明，不要把所有分数扣光。
+            2. 系统使用隔离的 MySQL 8 沙箱真实执行；语法、函数与结果均按 MySQL 行为判断。
             3. 如果 SQL 被安全策略拦截，必须重点评价其安全风险。
             4. 评分要结合题目要求和检索到的数据库知识库标准，避免只凭主观印象。
             5. 评语必须具体到 SQL 片段、执行错误或结果字段，不能只写笼统结论。
@@ -94,8 +95,14 @@ public class DatabaseHomeworkService {
             请严格按照系统角色设定的 JSON 格式返回数据库作业评分结果。""";
 
     public Dto.DatabaseHomeworkResult gradeHomework(MultipartFile file, String category) {
+        return gradeHomework(file, category, false);
+    }
+
+    public Dto.DatabaseHomeworkResult gradeHomework(
+            MultipartFile file, String category, boolean aiQuestionRecognition) {
         String fileName = file.getOriginalFilename();
-        List<Dto.DatabaseQuestionEntry> questions = documentParserService.parseDocx(file);
+        List<Dto.DatabaseQuestionEntry> questions = documentParserService
+                .parseDocxDetailed(file, aiQuestionRecognition, null).questions();
 
         List<Dto.DatabaseQuestionResult> results = new ArrayList<>();
         int totalScore = 0;
@@ -111,28 +118,48 @@ public class DatabaseHomeworkService {
         return new Dto.DatabaseHomeworkResult(fileName, totalScore, maxTotal, results);
     }
 
-    public void gradeHomeworkStream(MultipartFile file, String category, PrintWriter writer) {
-        String fileName = file.getOriginalFilename();
-        List<Dto.DatabaseQuestionEntry> questions = documentParserService.parseDocx(file);
+    public Dto.DatabaseHomeworkResult gradeHomeworkStream(
+            MultipartFile file, String category, PrintWriter writer) {
+        return gradeHomeworkStream(file, category, false, writer);
+    }
 
-        List<Dto.DatabaseQuestionResult> results = new ArrayList<>();
-        int totalScore = 0;
-        int maxTotal = 0;
-
-        for (Dto.DatabaseQuestionEntry q : questions) {
-            Dto.DatabaseQuestionResult r = evaluateQuestion(q, category);
-            results.add(r);
-            totalScore += r.score();
-            maxTotal += r.maxScore();
-
-            writer.write("event: question\ndata: " + toJson(r).replace("\n", "\ndata: ") + "\n\n");
+    public Dto.DatabaseHomeworkResult gradeHomeworkStream(
+            MultipartFile file, String category,
+            boolean aiQuestionRecognition, PrintWriter writer) {
+        try {
+            String fileName = file.getOriginalFilename();
+            DatabaseDocumentParserService.ParsedQuestions parsed = documentParserService
+                    .parseDocxDetailed(file, aiQuestionRecognition, null);
+            List<Dto.DatabaseQuestionEntry> questions = parsed.questions();
+            writer.write("event: recognition\ndata: "
+                    + recognitionToJson(parsed.recognition()) + "\n\n");
             writer.flush();
-        }
 
-        Dto.DatabaseHomeworkResult summary = new Dto.DatabaseHomeworkResult(fileName, totalScore, maxTotal, results);
-        writer.write("event: summary\ndata: " + toJson(summary).replace("\n", "\ndata: ") + "\n\n");
-        writer.write("event: done\ndata: [DONE]\n\n");
-        writer.flush();
+            List<Dto.DatabaseQuestionResult> results = new ArrayList<>();
+            int totalScore = 0;
+            int maxTotal = 0;
+
+            for (Dto.DatabaseQuestionEntry q : questions) {
+                Dto.DatabaseQuestionResult r = evaluateQuestion(q, category);
+                results.add(r);
+                totalScore += r.score();
+                maxTotal += r.maxScore();
+
+                writer.write("event: question\ndata: " + toJson(r).replace("\n", "\ndata: ") + "\n\n");
+                writer.flush();
+            }
+
+            Dto.DatabaseHomeworkResult summary = new Dto.DatabaseHomeworkResult(
+                    fileName, totalScore, maxTotal, results);
+            writer.write("event: summary\ndata: " + toJson(summary).replace("\n", "\ndata: ") + "\n\n");
+            writer.flush();
+            return summary;
+        } catch (Exception error) {
+            writer.write("event: error\ndata: {\"message\":\""
+                    + esc(safeErrorMessage(error)) + "\"}\n\n");
+            writer.flush();
+            return null;
+        }
     }
 
     private Dto.DatabaseQuestionResult evaluateQuestion(Dto.DatabaseQuestionEntry question, String category) {
@@ -321,6 +348,15 @@ public class DatabaseHomeworkService {
         return "{}";
     }
 
+    private String recognitionToJson(Dto.QuestionRecognitionInfo info) {
+        return String.format(Locale.ROOT,
+                "{\"requested\":%s,\"aiUsed\":%s,\"method\":\"%s\","
+                        + "\"message\":\"%s\",\"ruleQuestionCount\":%d,"
+                        + "\"finalQuestionCount\":%d,\"confidence\":%.3f}",
+                info.requested(), info.aiUsed(), esc(info.method()), esc(info.message()),
+                info.ruleQuestionCount(), info.finalQuestionCount(), info.confidence());
+    }
+
     private String executionToJson(Dto.SqlExecutionResult execution) {
         StringBuilder statements = new StringBuilder("[");
         for (int i = 0; i < execution.statements().size(); i++) {
@@ -381,5 +417,14 @@ public class DatabaseHomeworkService {
                 .replace("\n", "\\n")
                 .replace("\r", "\\r")
                 .replace("\t", "\\t");
+    }
+
+    private String safeErrorMessage(Exception error) {
+        String message = error.getMessage();
+        if (message == null || message.isBlank()) return "数据库作业批改失败";
+        return message
+                .replaceAll("sk-[A-Za-z0-9._-]{8,}", "sk-[已隐藏]")
+                .replaceAll("(?i)bearer\\s+[A-Za-z0-9._-]+", "Bearer [已隐藏]")
+                .replaceAll("(?i)(api[_ -]?key|authorization)[^,;\\n]*", "$1=[已隐藏]");
     }
 }

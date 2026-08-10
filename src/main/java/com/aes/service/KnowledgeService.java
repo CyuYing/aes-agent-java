@@ -52,7 +52,11 @@ public class KnowledgeService {
     // ================================================================
     @PostConstruct
     public void init() {
-        syncKnowledgeBase();
+        try {
+            syncKnowledgeBase();
+        } catch (RuntimeException e) {
+            System.err.println("[KnowledgeService] 启动时索引构建失败: " + e.getMessage());
+        }
     }
 
     // ================================================================
@@ -67,14 +71,14 @@ public class KnowledgeService {
             return documents;
         }
 
-        try (var files = Files.list(kbPath)) {
+        try (var files = Files.walk(kbPath)) {
             List<Path> fileList = files
                     .filter(Files::isRegularFile)
                     .sorted()
                     .toList();
 
             for (Path file : fileList) {
-                String filename = file.getFileName().toString();
+                String filename = kbPath.relativize(file).toString().replace('\\', '/');
                 String ext = filename.toLowerCase();
 
                 try {
@@ -294,10 +298,13 @@ public class KnowledgeService {
     // ================================================================
     // 重建索引
     // ================================================================
-    public void syncKnowledgeBase() {
+    public synchronized void syncKnowledgeBase() {
         try {
             fileMetadataMap.clear();
             List<Document> docs = loadDocuments();
+            // 同步语义是“以磁盘文件为准完整重建”，必须先清空旧向量。
+            // 否则每次点击同步都会把同一批片段再次追加到内存或 Chroma。
+            embeddingStore.removeAll();
             if (!docs.isEmpty()) {
                 buildIndex(docs);
                 System.out.println("[KnowledgeService] 索引构建完成: "
@@ -306,7 +313,9 @@ public class KnowledgeService {
                 System.out.println("[KnowledgeService] 知识库为空");
             }
         } catch (IOException e) {
-            System.err.println("[KnowledgeService] 同步失败: " + e.getMessage());
+            throw new IllegalStateException("Java 知识库文件读取失败: " + e.getMessage(), e);
+        } catch (RuntimeException e) {
+            throw new IllegalStateException("Java 知识库索引重建失败: " + e.getMessage(), e);
         }
     }
 

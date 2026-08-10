@@ -50,7 +50,11 @@ public class DatabaseKnowledgeService {
 
     @PostConstruct
     public void init() {
-        syncKnowledgeBase();
+        try {
+            syncKnowledgeBase();
+        } catch (RuntimeException e) {
+            System.err.println("[DatabaseKnowledgeService] 启动时索引构建失败: " + e.getMessage());
+        }
     }
 
     public List<Document> loadDocuments() throws IOException {
@@ -62,14 +66,14 @@ public class DatabaseKnowledgeService {
             return documents;
         }
 
-        try (var files = Files.list(kbPath)) {
+        try (var files = Files.walk(kbPath)) {
             List<Path> fileList = files
                     .filter(Files::isRegularFile)
                     .sorted()
                     .toList();
 
             for (Path file : fileList) {
-                String filename = file.getFileName().toString();
+                String filename = kbPath.relativize(file).toString().replace('\\', '/');
                 String ext = filename.toLowerCase();
 
                 try {
@@ -250,10 +254,12 @@ public class DatabaseKnowledgeService {
         return list;
     }
 
-    public void syncKnowledgeBase() {
+    public synchronized void syncKnowledgeBase() {
         try {
             fileMetadataMap.clear();
             List<Document> docs = loadDocuments();
+            // 同步必须替换旧集合，避免重复点击后相同片段持续累加。
+            embeddingStore.removeAll();
             if (!docs.isEmpty()) {
                 buildIndex(docs);
                 System.out.println("[DatabaseKnowledgeService] 索引构建完成: "
@@ -262,7 +268,9 @@ public class DatabaseKnowledgeService {
                 System.out.println("[DatabaseKnowledgeService] 知识库为空");
             }
         } catch (IOException e) {
-            System.err.println("[DatabaseKnowledgeService] 同步失败: " + e.getMessage());
+            throw new IllegalStateException("数据库知识库文件读取失败: " + e.getMessage(), e);
+        } catch (RuntimeException e) {
+            throw new IllegalStateException("数据库知识库索引重建失败: " + e.getMessage(), e);
         }
     }
 

@@ -1,7 +1,10 @@
 package com.aes.service;
 
 import com.aes.model.Dto;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 
@@ -10,6 +13,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DatabaseExecutionServiceTest {
 
     private final DatabaseExecutionService service = new DatabaseExecutionService();
+
+    @BeforeEach
+    void configureSandbox() {
+        String url = System.getenv("AES_TEST_MYSQL_SANDBOX_URL");
+        if (url != null && !url.isBlank()) {
+            ReflectionTestUtils.setField(service, "sandboxUrl", url);
+            ReflectionTestUtils.setField(service, "sandboxUsername",
+                    System.getenv().getOrDefault("AES_TEST_MYSQL_SANDBOX_USERNAME", "aes_sandbox"));
+            ReflectionTestUtils.setField(service, "sandboxPassword",
+                    System.getenv("AES_TEST_MYSQL_SANDBOX_PASSWORD"));
+        }
+    }
 
     @Test
     void splitSqlStatementsKeepsSemicolonsInsideStringsAndComments() {
@@ -30,6 +45,7 @@ class DatabaseExecutionServiceTest {
     }
 
     @Test
+    @EnabledIfEnvironmentVariable(named = "AES_TEST_MYSQL_SANDBOX_URL", matches = ".+")
     void executeRunsDdlDmlAndSelect() {
         String setupSql = """
                 CREATE TABLE users(id INT PRIMARY KEY, name VARCHAR(20));
@@ -50,6 +66,7 @@ class DatabaseExecutionServiceTest {
     }
 
     @Test
+    @EnabledIfEnvironmentVariable(named = "AES_TEST_MYSQL_SANDBOX_URL", matches = ".+")
     void executeCapturesSyntaxErrors() {
         Dto.SqlExecutionResult result = service.execute("", "SELECT FROM users;");
 
@@ -62,7 +79,7 @@ class DatabaseExecutionServiceTest {
 
     @Test
     void executeBlocksForbiddenStatementsBeforeRunningThem() {
-        Dto.SqlExecutionResult result = service.execute("", "SELECT * FROM CSVREAD('secret.csv');");
+        Dto.SqlExecutionResult result = service.execute("", "SELECT LOAD_FILE('secret.txt');");
 
         assertThat(result.success()).isFalse();
         assertThat(result.statements()).hasSize(1);

@@ -20,8 +20,22 @@ Thumbs.db
 # Chroma local data
 chroma-data/
 
+# Local grading history may contain student data
+data/grading_records/
+data/mysql/
+*.mv.db
+*.trace.db
+
 # Application config with sensitive data
 src/main/resources/application.properties
+.env
+!.env.example
+**/application-local.properties
+*.pid
+
+# Local notes that may contain API keys
+改进.md
+*.secrets.md
 
 # Temp files
 *.tmp
@@ -31,3 +45,7 @@ src/main/resources/application.properties
 # Test output
 hw_*.json
 hw_*.txt
+
+# Large Windows builds are distributed through GitHub Releases
+release/*
+!release/*.sha256

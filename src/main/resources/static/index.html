@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>教学作业智能评估平台</title>
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<link rel="preload" as="image" href="/assets/ui/assessment-hero.webp" type="image/webp">
+<script src="/webjars/marked/12.0.2/marked.min.js"></script>
 <style>
 :root {
     --primary: #0f766e; --primary-light: #e6f4f1;
@@ -381,20 +382,36 @@ select:focus {
 }
 
 .workspace-header {
+    position: relative;
     display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
+    min-height: 238px;
+    align-items: flex-start;
+    justify-content: flex-end;
+    flex-direction: column;
     gap: 18px;
     margin-bottom: 22px;
+    padding: 28px 30px;
+    overflow: hidden;
+    border: 1px solid rgba(153, 246, 228, .18);
+    border-radius: 16px;
+    background-image:
+        linear-gradient(90deg, rgba(3, 12, 27, .2) 0%, rgba(3, 12, 27, .08) 43%, rgba(3, 12, 27, 0) 72%),
+        url('/assets/ui/assessment-hero.webp');
+    background-size: cover;
+    background-position: center;
+    box-shadow: 0 22px 54px rgba(15, 23, 42, .2);
 }
 
 .workspace-title {
+    position: relative;
+    z-index: 1;
     display: grid;
     gap: 6px;
+    max-width: 46%;
 }
 
 .workspace-title span {
-    color: var(--accent);
+    color: #fbbf24;
     font-size: .74rem;
     font-weight: 800;
     letter-spacing: .1em;
@@ -405,24 +422,35 @@ select:focus {
     font-size: clamp(1.7rem, 3vw, 2.35rem);
     line-height: 1.15;
     font-weight: 850;
-    color: var(--text);
+    color: #ffffff;
+    text-shadow: 0 2px 18px rgba(0, 0, 0, .28);
+}
+
+.workspace-title p {
+    max-width: 420px;
+    color: rgba(226, 232, 240, .82);
+    font-size: .84rem;
+    line-height: 1.65;
 }
 
 .workspace-meta {
+    position: relative;
+    z-index: 1;
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
-    justify-content: flex-end;
+    justify-content: flex-start;
 }
 
 .meta-pill {
-    border: 1px solid var(--border);
+    border: 1px solid rgba(255,255,255,.15);
     border-radius: 999px;
-    background: rgba(255,255,255,.8);
-    color: var(--muted);
+    background: rgba(15, 23, 42, .48);
+    color: rgba(255,255,255,.84);
     padding: 7px 11px;
     font-size: .78rem;
     font-weight: 700;
+    backdrop-filter: blur(8px);
 }
 
 .tabs {
@@ -473,11 +501,16 @@ select:focus {
     background:
         linear-gradient(180deg, #ffffff 0%, #f7fafc 100%);
     border: 1px dashed var(--border-strong);
-    min-height: 190px;
+    min-height: 216px;
     display: grid;
-    place-items: center;
-    align-content: center;
-    gap: 4px;
+    grid-template-columns: minmax(150px, .72fr) minmax(0, 1.28fr);
+    place-items: center start;
+    align-content: stretch;
+    gap: 20px;
+    padding: 16px 28px 16px 18px;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
 }
 
 .upload-area:hover,
@@ -485,6 +518,53 @@ select:focus {
     border-color: var(--primary);
     background: var(--primary-light);
     box-shadow: 0 0 0 4px rgba(15,118,110,.08);
+}
+
+.upload-illustration {
+    width: min(100%, 188px);
+    aspect-ratio: 1;
+    object-fit: contain;
+    border-radius: 18px;
+    filter: drop-shadow(0 14px 18px rgba(15, 23, 42, .08));
+    transition: transform .24s ease;
+}
+
+.upload-area:hover .upload-illustration,
+.upload-area.dragover .upload-illustration {
+    transform: translateY(-3px) scale(1.025);
+}
+
+.upload-copy {
+    display: grid;
+    gap: 8px;
+}
+
+.upload-format {
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    min-height: 25px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--primary-light);
+    color: var(--primary-strong);
+    font-size: .7rem;
+    font-weight: 850;
+    letter-spacing: .08em;
+}
+
+.upload-title {
+    color: var(--text);
+    font-size: 1.02rem;
+    font-weight: 800;
+    line-height: 1.45;
+}
+
+.upload-description {
+    max-width: 460px;
+    color: var(--muted);
+    font-size: .82rem;
+    line-height: 1.7;
 }
 
 .stream-raw,
@@ -579,12 +659,337 @@ select:focus {
     border-radius: 8px;
     padding: 10px 12px;
 }
+.recognition-option {
+    align-items: flex-start;
+    margin-top: 12px;
+    background: #f8fafc;
+}
+.recognition-option input { margin-top: 3px; }
+.recognition-option strong { display: block; margin-bottom: 2px; color: var(--text); }
+.recognition-option small { display: block; color: var(--muted); line-height: 1.55; }
+.recognition-status {
+    margin-top: 8px;
+    min-height: 20px;
+    color: var(--muted);
+    font-size: .78rem;
+    line-height: 1.55;
+}
+.recognition-status.ai-used { color: #047857; }
+.recognition-status.fallback { color: #b45309; }
+
+/* Unified single-homework workflow */
+.single-intro {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 16px;
+    padding: 17px 19px;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #eff6ff, #f0fdfa);
+}
+.single-intro h2 { margin: 0 0 6px; color: #1e3a8a; }
+.single-intro p { margin: 0; color: #475569; font-size: .85rem; line-height: 1.7; }
+.single-mode-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(210px, .42fr);
+    align-items: end;
+    gap: 16px;
+    margin-bottom: 18px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: #f8fafc;
+}
+.single-mode-copy strong { display: block; margin-bottom: 4px; font-size: .9rem; }
+.single-mode-control { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; }
+.single-mode-control select { min-height: 40px; background: #fff; }
+.single-detected-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    color: #475569;
+    font-size: .72rem;
+    font-weight: 750;
+    white-space: nowrap;
+}
+.single-detected-badge.database { background: #dbeafe; color: #1d4ed8; }
+.single-detected-badge.java { background: #d1fae5; color: #047857; }
+.database-mode-hint {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border: 1px solid #bfdbfe;
+    border-radius: 9px;
+    background: #eff6ff;
+    color: #1e3a8a;
+}
+.database-mode-hint strong { display: block; margin-bottom: 4px; }
+.database-mode-hint span { color: #475569; font-size: .82rem; line-height: 1.65; }
+
+/* Parsed-question configuration */
+.parse-panel {
+    margin-top: 18px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #f8fafc;
+    padding: 16px;
+}
+
+.parse-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.parse-panel-head h3 { font-size: 1rem; }
+
+.question-config {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 12px;
+}
+
+.question-config-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.question-config-title { font-weight: 750; }
+.question-config-desc {
+    margin-top: 12px;
+    padding: 11px 12px;
+    border-radius: 6px;
+    background: #f8fafc;
+    color: #475569;
+    font-size: .84rem;
+    white-space: pre-wrap;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.config-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.config-field { display: grid; gap: 6px; }
+.config-field.full { grid-column: 1 / -1; }
+.config-field label { font-size: .8rem; font-weight: 700; color: var(--muted); }
+.config-field input[type="text"] {
+    width: 100%;
+    min-height: 40px;
+    border: 1px solid var(--border-strong);
+    border-radius: 7px;
+    padding: 8px 10px;
+    font: inherit;
+}
+.question-config textarea {
+    min-height: 82px;
+    max-height: 220px;
+    font-family: var(--font-sans);
+}
+.question-config .student-answer-input.programming { display: none; }
+
+.type-badge, .method-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 3px 8px;
+    font-size: .72rem;
+    font-weight: 750;
+    white-space: nowrap;
+}
+.type-badge { background: var(--primary-light); color: var(--primary-strong); }
+.method-badge { background: #eef2ff; color: #4338ca; }
+
+.image-strip { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.image-thumb {
+    width: 112px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 6px;
+    background: #fff;
+}
+.image-thumb img { width: 100%; height: 76px; object-fit: contain; background: #f8fafc; }
+.image-thumb span { display: block; margin-top: 4px; font-size: .69rem; color: var(--muted); }
+.image-thumb select { margin-top: 5px; padding: 4px; font-size: .68rem; border-radius: 5px; }
+.image-analysis-box {
+    margin: 0 0 16px;
+    padding: 12px;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    background: #eff6ff;
+    font-size: .82rem;
+}
+.image-analysis-item { margin-top: 8px; padding-top: 8px; border-top: 1px solid #bfdbfe; white-space: pre-wrap; }
+.parse-note { color: var(--muted); font-size: .8rem; line-height: 1.65; }
+
+/* Grading history and teacher review */
+.record-section { display: grid; gap: 8px; }
+.record-section-head { display: flex; min-height: 58px; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 9px 7px 12px; border: 1px solid var(--border); border-radius: 8px; background: linear-gradient(135deg, #ffffff, #f4faf8); }
+.record-section-head h2 { margin: 0; }
+.record-section-art { width: 48px; height: 48px; object-fit: cover; border-radius: 9px; box-shadow: 0 8px 16px rgba(15, 118, 110, .1); }
+.record-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.record-tools .btn { padding: 8px 10px; font-size: .78rem; }
+.record-tools .record-search-button { grid-column: 1 / -1; border-color: #99f6e4; background: #f0fdfa; color: #115e59; }
+.record-list { display: grid; gap: 8px; max-height: 340px; overflow-y: auto; }
+.record-card { border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: #f8fafc; }
+.record-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.record-file { min-width: 0; font-size: .8rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.record-score { color: var(--primary-strong); font-weight: 800; white-space: nowrap; }
+.record-meta { margin-top: 4px; color: var(--muted); font-size: .7rem; }
+.record-status { display: inline-flex; margin-top: 6px; border-radius: 999px; padding: 2px 7px; font-size: .67rem; font-weight: 750; }
+.record-status.pending { color: #92400e; background: #fef3c7; }
+.record-status.approved { color: #166534; background: #dcfce7; }
+.record-status.revision { color: #991b1b; background: #fee2e2; }
+.record-actions { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.record-action { border: 1px solid var(--border); border-radius: 6px; padding: 4px 7px; background: #fff; color: var(--text); cursor: pointer; font: inherit; font-size: .68rem; }
+.record-action:hover { border-color: var(--primary); color: var(--primary-strong); }
+.record-empty { border: 1px dashed var(--border); border-radius: 8px; padding: 12px; color: var(--muted); font-size: .78rem; text-align: center; }
+.record-note { margin-top: 6px; padding: 6px 8px; border-radius: 6px; background: #fff; color: var(--muted); font-size: .7rem; }
+.record-dialog { width: min(760px, calc(100vw - 32px)); max-height: 86vh; margin: auto; border: 0; border-radius: 12px; padding: 0; box-shadow: 0 24px 60px rgba(15,23,42,.28); }
+.record-dialog::backdrop { background: rgba(15,23,42,.45); }
+.record-dialog-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border); background: #fff; }
+.record-dialog-body { padding: 20px; overflow-y: auto; max-height: calc(86vh - 65px); }
+.record-detail-summary { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; color: var(--muted); font-size: .82rem; }
+.record-question { border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-top: 10px; }
+.record-question-head { display: flex; justify-content: space-between; gap: 10px; font-weight: 700; }
+.record-report { margin-top: 10px; white-space: pre-wrap; color: #475569; font-size: .8rem; line-height: 1.65; }
+.review-dialog { width: min(520px, calc(100vw - 32px)); margin: auto; border: 0; border-radius: 12px; padding: 0; box-shadow: 0 24px 60px rgba(15,23,42,.28); }
+.review-dialog::backdrop { background: rgba(15,23,42,.45); }
+.review-form { display: grid; gap: 12px; padding: 20px; }
+.review-form label { font-size: .82rem; font-weight: 700; color: var(--muted); }
+.review-form textarea { min-height: 120px; font-family: var(--font-sans); }
+.review-form-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.search-dialog { width: min(1040px, calc(100vw - 30px)); }
+.record-search-form {
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;
+    padding: 16px; border: 1px solid var(--border); border-radius: 10px; background: #f8fafc;
+}
+.record-search-field { display: grid; gap: 5px; min-width: 0; }
+.record-search-field.span-2 { grid-column: span 2; }
+.record-search-field label { color: var(--muted); font-size: .72rem; font-weight: 750; }
+.record-search-field input,
+.record-search-field select {
+    width: 100%; min-height: 38px; padding: 7px 9px; border: 1px solid var(--border-strong);
+    border-radius: 7px; background: #fff; color: var(--text); font: inherit; font-size: .79rem;
+}
+.record-search-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; }
+.record-search-actions .btn { width: auto; padding: 8px 16px; }
+.record-storage-banner {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+    margin-bottom: 12px; padding: 10px 12px; border: 1px solid #a7f3d0; border-radius: 8px;
+    background: #ecfdf5; color: #065f46; font-size: .78rem;
+}
+.record-search-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 16px 0 8px; color: var(--muted); font-size: .78rem; }
+.record-search-results { display: grid; gap: 9px; }
+.search-result-card { border: 1px solid var(--border); border-radius: 9px; padding: 12px 14px; background: #fff; }
+.search-result-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.search-result-title { font-size: .88rem; font-weight: 800; }
+.search-result-score { flex: 0 0 auto; color: var(--primary-strong); font-size: 1rem; font-weight: 850; }
+.search-result-identity { margin-top: 4px; color: #334155; font-size: .76rem; }
+.search-result-snippet { margin-top: 8px; padding: 8px 10px; border-radius: 7px; background: #f8fafc; color: #475569; font-size: .75rem; line-height: 1.55; white-space: pre-wrap; }
+.record-search-pagination { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 14px; }
+.record-search-pagination .record-action { padding: 6px 12px; }
+.record-answer-block { margin-top: 10px; }
+.record-answer-block strong { display: block; margin-bottom: 4px; color: var(--muted); font-size: .76rem; }
+.record-answer-block pre { max-height: 240px; overflow: auto; white-space: pre-wrap; word-break: break-word; padding: 10px; border-radius: 7px; background: #f8fafc; font: .78rem/1.6 var(--font-mono); }
+
+/* Answer-key driven batch grading */
+.batch-intro {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 18px;
+    margin-bottom: 18px; padding: 18px 20px; border: 1px solid #a7f3d0;
+    border-radius: 10px; background: linear-gradient(135deg, #ecfdf5, #f0fdfa);
+}
+.batch-intro h2 { margin: 0 0 6px; color: #065f46; }
+.batch-intro p { margin: 0; color: #37655c; line-height: 1.7; font-size: .86rem; }
+.batch-intro .type-badge { flex: 0 0 auto; background: #d1fae5; color: #065f46; }
+.batch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.batch-step {
+    border: 1px solid var(--border); border-radius: 10px; padding: 18px;
+    background: #fff; box-shadow: 0 8px 20px rgba(15, 23, 42, .035);
+}
+.batch-step-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.batch-step-number {
+    display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+    background: var(--primary); color: #fff; font-weight: 800; font-size: .78rem;
+}
+.batch-step h3 { margin: 0; font-size: 1rem; }
+.batch-field { display: grid; gap: 6px; margin-top: 11px; }
+.batch-field label { color: var(--muted); font-size: .78rem; font-weight: 700; }
+.batch-upload {
+    display: grid; place-items: center; min-height: 82px; padding: 12px;
+    border: 1px dashed #94a3b8; border-radius: 8px; background: #f8fafc;
+    color: var(--muted); text-align: center; cursor: pointer; font-size: .8rem;
+}
+.batch-upload:hover { border-color: var(--primary); background: var(--primary-light); color: var(--primary-strong); }
+.batch-upload input { display: none; }
+.batch-file-list { display: grid; gap: 6px; margin-top: 10px; }
+.batch-file-chip {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 7px 9px; border: 1px solid var(--border); border-radius: 7px;
+    background: #f8fafc; font-size: .76rem;
+}
+.batch-file-chip span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.batch-key-card { margin-top: 14px; border: 1px solid #bfdbfe; border-radius: 9px; overflow: hidden; }
+.batch-key-head { display: flex; justify-content: space-between; gap: 10px; padding: 12px; background: #eff6ff; }
+.batch-key-title { font-weight: 800; color: #1e3a8a; }
+.batch-score-table, .batch-preview-table, .batch-rank-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+.batch-score-table th, .batch-score-table td,
+.batch-preview-table th, .batch-preview-table td,
+.batch-rank-table th, .batch-rank-table td { padding: 9px 10px; border-top: 1px solid var(--border); text-align: left; vertical-align: top; }
+.batch-score-table th, .batch-preview-table th, .batch-rank-table th { color: var(--muted); background: #f8fafc; font-weight: 750; }
+.batch-score-input { width: 72px; padding: 6px 8px; text-align: right; }
+.score-auto { display: inline-flex; margin-left: 5px; color: #92400e; background: #fef3c7; border-radius: 999px; padding: 2px 6px; font-size: .65rem; }
+.batch-score-total { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 10px 12px; background: #f8fafc; font-size: .8rem; }
+.batch-score-total.invalid strong { color: var(--danger); }
+.batch-preview-panel { margin-top: 18px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: #fff; }
+.batch-panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.batch-panel-head h3 { margin: 0; }
+.match-ok { color: #047857; font-weight: 750; }
+.match-warn { color: #b45309; font-weight: 750; }
+.batch-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.batch-actions .btn { width: auto; }
+.batch-progress-box { margin-top: 16px; padding: 14px 16px; border: 1px solid #bfdbfe; border-radius: 9px; background: #eff6ff; }
+.batch-progress-track { height: 8px; margin-top: 9px; border-radius: 999px; overflow: hidden; background: #dbeafe; }
+.batch-progress-bar { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--primary), #22c55e); transition: width .25s ease; }
+.batch-summary-card { margin-top: 18px; padding: 18px; border-radius: 10px; background: #0f172a; color: #fff; }
+.batch-summary-card h3 { margin: 0 0 10px; }
+.batch-summary-stats { display: flex; flex-wrap: wrap; gap: 18px; color: #cbd5e1; font-size: .82rem; }
+.batch-summary-stats strong { display: block; color: #fff; font-size: 1.25rem; }
+.batch-result-card { margin-top: 14px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: #fff; }
+.batch-result-head { display: flex; justify-content: space-between; gap: 12px; padding: 14px 16px; background: #f8fafc; }
+.batch-result-score { color: var(--primary-strong); font-size: 1.05rem; font-weight: 850; }
+.batch-question-detail { border-top: 1px solid var(--border); }
+.batch-question-detail summary { display: flex; justify-content: space-between; gap: 10px; padding: 11px 16px; cursor: pointer; font-size: .8rem; font-weight: 700; }
+.batch-question-report { padding: 0 16px 14px; color: #475569; font-size: .8rem; line-height: 1.65; }
 
 @media (max-width: 960px) {
     .workspace-header {
         align-items: flex-start;
-        flex-direction: column;
+        min-height: 250px;
+        padding: 24px;
+        background-position: 58% center;
     }
+    .workspace-title {
+        max-width: 54%;
+    }
+    .batch-grid { grid-template-columns: 1fr; }
+    .single-mode-panel { grid-template-columns: 1fr; align-items: stretch; }
     .workspace-meta {
         justify-content: flex-start;
     }
@@ -604,9 +1009,60 @@ select:focus {
     .tab-content {
         padding: 16px;
     }
+    .workspace-header {
+        min-height: 270px;
+        background-position: 68% center;
+    }
+    .workspace-header::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, rgba(3,12,27,.92) 0%, rgba(3,12,27,.7) 62%, rgba(3,12,27,.22) 100%);
+    }
+    .workspace-title,
+    .workspace-meta {
+        z-index: 1;
+    }
+    .workspace-title {
+        max-width: 82%;
+    }
+    .upload-area {
+        grid-template-columns: 112px minmax(0, 1fr);
+        gap: 14px;
+        padding: 16px;
+    }
+    .upload-illustration {
+        width: 112px;
+    }
     textarea {
         min-height: 300px;
     }
+    .config-grid { grid-template-columns: 1fr; }
+    .config-field.full { grid-column: auto; }
+    .record-search-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 540px) {
+    .workspace-title { max-width: 100%; }
+    .workspace-meta { gap: 6px; }
+    .meta-pill { padding: 5px 8px; font-size: .7rem; }
+    .upload-area {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
+    }
+    .upload-copy { justify-items: center; }
+    .upload-description { text-align: center; }
+    .upload-illustration { width: 132px; }
+    .batch-intro { display: block; }
+    .batch-intro .type-badge { margin-top: 10px; }
+    .batch-preview-panel { overflow-x: auto; }
+    .record-search-form { grid-template-columns: 1fr; }
+    .record-search-field.span-2 { grid-column: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .upload-illustration { transition: none; }
 }
 </style>
 </head>
@@ -624,7 +1080,7 @@ select:focus {
         <h2>知识库管理</h2>
         <div class="kb-panel">
             <h3>Java 知识库</h3>
-            <button class="btn btn-outline" onclick="syncKnowledge()">同步 Java 知识库</button>
+            <button class="btn btn-outline" onclick="syncKnowledge(this)">同步 Java 知识库</button>
             <div id="statsBox" class="stats-box" style="margin-top:12px;display:none;">
                 <div>已索引: <strong id="chunkCount">-</strong> 个片段</div>
                 <div>文件数: <strong id="fileCount">-</strong></div>
@@ -636,7 +1092,7 @@ select:focus {
         </div>
         <div class="kb-panel">
             <h3>数据库知识库</h3>
-            <button class="btn btn-outline" onclick="syncDatabaseKnowledge()">同步数据库知识库</button>
+            <button class="btn btn-outline" onclick="syncDatabaseKnowledge(this)">同步数据库知识库</button>
             <div id="dbStatsBox" class="stats-box" style="margin-top:12px;display:none;">
                 <div>已索引: <strong id="dbChunkCount">-</strong> 个片段</div>
                 <div>文件数: <strong id="dbFileCount">-</strong></div>
@@ -668,6 +1124,21 @@ select:focus {
             显示检索上下文
         </label>
     </div>
+
+    <section class="record-section" aria-labelledby="recordSectionTitle">
+        <div class="record-section-head">
+            <h2 id="recordSectionTitle">批改记录</h2>
+            <img class="record-section-art" src="/assets/ui/teacher-review.webp" alt="" aria-hidden="true" decoding="async">
+        </div>
+        <div class="record-tools">
+            <button class="btn btn-outline record-search-button" type="button" onclick="openGradingSearch()">详细查询数据库</button>
+            <button class="btn btn-outline" type="button" onclick="loadGradingRecords()">刷新记录</button>
+            <button class="btn btn-outline" type="button" onclick="exportGradingRecords()">导出 CSV</button>
+        </div>
+        <div id="gradingRecordList" class="record-list" aria-live="polite">
+            <div class="record-empty">正在加载批改记录...</div>
+        </div>
+    </section>
 </aside>
 
 <main class="main">
@@ -675,6 +1146,7 @@ select:focus {
         <div class="workspace-title">
             <span>AI Evaluation Console</span>
             <h2>作业批改控制台</h2>
+            <p>从文档拆题、知识检索到证据核验与教师复核，一站完成可追溯的教学评估。</p>
         </div>
         <div class="workspace-meta">
             <span class="meta-pill">RAG 标准检索</span>
@@ -684,29 +1156,170 @@ select:focus {
     </div>
 
     <div class="tabs">
-        <button class="tab active" onclick="switchTab('homework')">作业文档批改</button>
-        <button class="tab" onclick="switchTab('database')">数据库作业批改</button>
+        <button class="tab active" onclick="switchTab('batch', this)">答案库批量批改</button>
+        <button class="tab" onclick="switchTab('homework', this)">单份作业批改</button>
     </div>
 
-    <!-- ========== 作业文档批改 ========== -->
-    <div id="tab-homework" class="tab-content active">
+    <!-- ========== 答案库驱动的批量批改 ========== -->
+    <div id="tab-batch" class="tab-content active">
+        <div class="batch-intro">
+            <div>
+                <h2>答案库驱动的自动批量批改</h2>
+                <p>导入一份参考答案后，系统自动识别课程、题号、评分细则和逐题分值；再按姓名与学号归档多份学生作业。整份作业固定满分 100 分。</p>
+            </div>
+            <span class="type-badge">推荐工作流</span>
+        </div>
+
+        <div class="batch-grid">
+            <section class="batch-step">
+                <div class="batch-step-head">
+                    <span class="batch-step-number">1</span>
+                    <h3>选择或建立答案库</h3>
+                </div>
+                <div class="batch-field">
+                    <label for="batchCourseType">课程类型</label>
+                    <select id="batchCourseType" onchange="loadAnswerKeys()">
+                        <option value="auto">自动识别</option>
+                        <option value="java">Java 程序设计</option>
+                        <option value="database">数据库原理</option>
+                    </select>
+                </div>
+                <div class="batch-field">
+                    <label for="batchAnswerKeySelect">已有答案库</label>
+                    <select id="batchAnswerKeySelect" onchange="selectBatchAnswerKey(this.value)">
+                        <option value="">正在读取...</option>
+                    </select>
+                </div>
+                <label class="batch-upload" for="batchReferenceFile">
+                    <span><strong>首次使用：选择参考答案 DOCX</strong><br>自动写入结构化答案库与课程知识库</span>
+                    <input type="file" id="batchReferenceFile" accept=".docx" onchange="handleBatchReference(event)">
+                </label>
+                <div id="batchReferenceName" class="batch-file-list"></div>
+                <div id="batchKeySummary"></div>
+            </section>
+
+            <section class="batch-step">
+                <div class="batch-step-head">
+                    <span class="batch-step-number">2</span>
+                    <h3>选择学生作业</h3>
+                </div>
+                <label class="batch-upload" for="batchStudentFiles">
+                    <span><strong>选择多份学生作业</strong><br>支持一次选择 1–50 份 DOCX</span>
+                    <input type="file" id="batchStudentFiles" accept=".docx" multiple onchange="handleBatchStudents(event)">
+                </label>
+                <div style="height:8px"></div>
+                <label class="batch-upload" for="batchFolderFiles">
+                    <span><strong>也可直接选择整个案例文件夹</strong><br>自动区分“参考答案”和学生作业</span>
+                    <input type="file" id="batchFolderFiles" accept=".docx" webkitdirectory directory multiple onchange="handleBatchFolder(event)">
+                </label>
+                <div id="batchStudentList" class="batch-file-list"></div>
+                <label class="toggle-row recognition-option">
+                    <input type="checkbox" id="batchAiQuestionRecognition" onchange="changeBatchAiRecognition()">
+                    <span><strong>AI 复核题目边界（可选）</strong>
+                    <small>在本地规则之后增加一次 AI 题目起始行校验；失败时自动回退，不影响批改。</small></span>
+                </label>
+                <div class="batch-actions">
+                    <button class="btn btn-primary" id="batchPreviewBtn" type="button" onclick="prepareBatch()" disabled>自动建库并预检匹配</button>
+                </div>
+            </section>
+        </div>
+
+        <section id="batchPreviewPanel" class="batch-preview-panel" style="display:none">
+            <div class="batch-panel-head">
+                <div>
+                    <h3>匹配预检</h3>
+                    <div class="parse-note">正式调用模型前先确认题号匹配、学生身份和逐题分值。</div>
+                </div>
+                <span id="batchMatchBadge" class="type-badge"></span>
+            </div>
+            <div style="overflow-x:auto">
+                <table class="batch-preview-table">
+                    <thead><tr><th>学生</th><th>学号 / 班级</th><th>文件</th><th>匹配</th><th>提示</th></tr></thead>
+                    <tbody id="batchPreviewBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="batch-actions">
+            <button class="btn btn-primary" id="batchGradeBtn" type="button" onclick="startBatchGrading()" disabled>开始自动批量批改</button>
+            <button class="btn btn-outline" id="batchExportBtn" type="button" onclick="exportBatchCsv()" style="display:none">导出本批成绩 CSV</button>
+        </div>
+
+        <div id="batchProgress" class="batch-progress-box" style="display:none">
+            <div id="batchProgressText"><span class="spinner"></span> 正在准备批改...</div>
+            <div class="batch-progress-track"><div id="batchProgressBar" class="batch-progress-bar"></div></div>
+        </div>
+        <div id="batchSummary" style="display:none"></div>
+        <div id="batchResults"></div>
+    </div>
+
+    <!-- ========== 统一单份作业批改 ========== -->
+    <div id="tab-homework" class="tab-content">
+        <div class="single-intro">
+            <div>
+                <h2>单份作业智能批改</h2>
+                <p>同一入口处理 Java 与数据库作业。上传后自动识别课程；Java 进入逐题配置，数据库进入 SQL 隔离执行与证据核验。</p>
+            </div>
+            <span class="type-badge">统一入口</span>
+        </div>
+        <div class="single-mode-panel">
+            <div class="single-mode-copy">
+                <strong>课程识别方式</strong>
+                <div class="parse-note">建议保持自动识别；若文档题干不典型，可在上传前后手动指定课程。</div>
+            </div>
+            <div class="single-mode-control">
+                <select id="singleCourseType" aria-label="单份作业课程类型" onchange="changeSingleCourseType(this.value)">
+                    <option value="auto" selected>自动识别</option>
+                    <option value="java">Java 程序设计</option>
+                    <option value="database">数据库原理</option>
+                </select>
+                <span id="singleCourseBadge" class="single-detected-badge">等待上传</span>
+            </div>
+        </div>
+        <label class="toggle-row recognition-option">
+            <input type="checkbox" id="singleAiQuestionRecognition" onchange="changeSingleAiRecognition(this)">
+            <span><strong>AI 复核题目边界（可选）</strong>
+            <small>适合题号不规范、表格排版或题内编号较多的文档；AI 不改写作业，异常时自动回退本地规则。</small></span>
+        </label>
+        <div id="singleRecognitionStatus" class="recognition-status">当前使用本地规则识别题目。</div>
         <h2>上传作业文档</h2>
         <div class="upload-area" id="uploadArea" onclick="document.getElementById('homeworkFile').click()">
-            <div style="font-size:1.7rem;margin-bottom:8px;">DOCX</div>
-            <div style="font-weight:600;margin-bottom:4px;">点击或拖拽上传 Word 文档</div>
-            <div style="font-size:.85rem;color:var(--muted)">支持 .docx 格式，文档中可包含多道编程题</div>
+            <img id="singleUploadIllustration" class="upload-illustration" src="/assets/ui/upload-documents.webp" alt="" aria-hidden="true" decoding="async">
+            <div class="upload-copy">
+                <span id="singleUploadFormat" class="upload-format">DOCX · AUTO</span>
+                <div id="singleUploadTitle" class="upload-title">点击或拖拽上传 Java / 数据库作业</div>
+                <div id="singleUploadDescription" class="upload-description">自动识别课程类型，并进入逐题配置或 SQL 执行核验流程。</div>
+            </div>
             <input type="file" id="homeworkFile" accept=".docx" onchange="handleHomeworkFile(event)">
         </div>
         <div id="fileNameDisplay" style="margin-top:12px;font-size:.9rem;color:var(--muted);display:none;">
             已选择：<strong id="selectedFileName"></strong>
+            <span id="selectedCourseText" class="parse-note" style="margin-left:8px"></span>
         </div>
-        <button class="btn btn-primary" id="hwBtn" onclick="startHomeworkGrading()" style="margin-top:16px;" disabled>
-            开始批改
+        <div id="hwParseProgress" style="margin-top:14px;display:none;">
+            <span class="spinner"></span> <span id="hwParseProgressText">正在解析文档并识别课程类型...</span>
+        </div>
+        <section id="questionConfigPanel" class="parse-panel" style="display:none;">
+            <div class="parse-panel-head">
+                <div>
+                    <h3>逐题确认与批改设置</h3>
+                    <div class="parse-note">可修正题型、学生答案和图片角色；选择题填写标准答案，其他题可填写文字参考答案。每道题都可单独设置提示词和参考答案图片。</div>
+                </div>
+                <span id="parsedQuestionCount" class="type-badge"></span>
+            </div>
+            <div id="questionConfigList"></div>
+        </section>
+        <div id="databaseModeHint" class="database-mode-hint" style="display:none">
+            <strong>数据库作业执行核验模式</strong>
+            <span>系统会识别初始化 SQL 与学生 SQL，在独立 MySQL 沙箱中真实执行，并将结果表、错误信息和安全拦截证据纳入评分。</span>
+        </div>
+        <button class="btn btn-primary" id="hwBtn" onclick="startUnifiedHomeworkGrading()" style="margin-top:16px;" disabled>
+            选择作业后开始批改
         </button>
 
         <!-- 进度 -->
         <div id="hwProgress" style="margin-top:16px;display:none;">
-            <span class="spinner"></span> 正在解析文档并逐题批改...
+            <span class="spinner"></span> <span id="hwProgressText">正在逐题批改...</span>
         </div>
 
         <!-- 汇总 -->
@@ -717,50 +1330,157 @@ select:focus {
 
         <!-- RAG 来源 -->
         <div id="hwSourcesArea" style="display:none;">
-            <h3 style="margin-top:20px;">检索到的上下文（RAG 源文档）</h3>
+            <h3 id="hwSourcesTitle" style="margin-top:20px;">检索到的上下文（RAG 源文档）</h3>
             <div class="sources-box" id="hwSourcesContent"></div>
-        </div>
-    </div>
-
-    <!-- ========== 数据库作业文档批改 ========== -->
-    <div id="tab-database" class="tab-content">
-        <h2>上传数据库作业文档</h2>
-        <div class="upload-area" id="dbUploadArea" onclick="document.getElementById('databaseFile').click()">
-            <div style="font-size:1.7rem;margin-bottom:8px;">SQL</div>
-            <div style="font-weight:600;margin-bottom:4px;">点击或拖拽上传数据库作业 Word 文档</div>
-            <div style="font-size:.85rem;color:var(--muted)">支持 .docx，建议包含题目要求、初始化 SQL、学生 SQL</div>
-            <input type="file" id="databaseFile" accept=".docx" onchange="handleDatabaseFile(event)">
-        </div>
-        <div id="dbFileNameDisplay" style="margin-top:12px;font-size:.9rem;color:var(--muted);display:none;">
-            已选择：<strong id="dbSelectedFileName"></strong>
-        </div>
-        <button class="btn btn-primary" id="dbHwBtn" onclick="startDatabaseHomeworkGrading()" style="margin-top:16px;" disabled>
-            开始批改数据库作业
-        </button>
-
-        <div id="dbHwProgress" style="margin-top:16px;display:none;">
-            <span class="spinner"></span> 正在解析文档、执行 SQL 并逐题批改...
-        </div>
-
-        <div id="dbHwSummary" style="display:none;margin-top:20px;"></div>
-        <div id="dbHwResults" style="margin-top:16px;"></div>
-
-        <div id="dbHwSourcesArea" style="display:none;">
-            <h3 style="margin-top:20px;">检索到的数据库上下文（RAG 源文档）</h3>
-            <div class="sources-box" id="dbHwSourcesContent"></div>
         </div>
     </div>
 </main>
 </div>
 
+<dialog id="gradingRecordDialog" class="record-dialog" onclick="closeRecordDialogFromBackdrop(event)">
+    <div class="record-dialog-head">
+        <div>
+            <strong id="recordDialogTitle">批改详情</strong>
+            <div id="recordDialogSubtitle" class="record-meta"></div>
+        </div>
+        <button class="record-action" type="button" onclick="document.getElementById('gradingRecordDialog').close()">关闭</button>
+    </div>
+    <div id="recordDialogBody" class="record-dialog-body"></div>
+</dialog>
+
+<dialog id="gradingReviewDialog" class="review-dialog" onclick="closeRecordDialogFromBackdrop(event)">
+    <form class="review-form" onsubmit="submitGradingReview(event)">
+        <div>
+            <strong id="gradingReviewTitle">教师复核</strong>
+            <div id="gradingReviewHint" class="record-meta"></div>
+        </div>
+        <label for="gradingReviewNote">审核意见</label>
+        <textarea id="gradingReviewNote" placeholder="填写确认意见或需要调整的原因"></textarea>
+        <div class="review-form-actions">
+            <button class="record-action" type="button" onclick="document.getElementById('gradingReviewDialog').close()">取消</button>
+            <button id="gradingReviewSubmit" class="btn btn-primary" type="submit" style="width:auto;padding:8px 16px">保存审核</button>
+        </div>
+    </form>
+</dialog>
+
+<dialog id="gradingSearchDialog" class="record-dialog search-dialog" onclick="closeRecordDialogFromBackdrop(event)">
+    <div class="record-dialog-head">
+        <div>
+            <strong>批改记录数据库</strong>
+            <div class="record-meta">组合筛选整份记录，或直接定位某个学生的某一道题</div>
+        </div>
+        <button class="record-action" type="button" onclick="document.getElementById('gradingSearchDialog').close()">关闭</button>
+    </div>
+    <div class="record-dialog-body">
+        <div id="gradingStorageSummary" class="record-storage-banner">正在读取数据库状态...</div>
+        <form id="gradingSearchForm" class="record-search-form" onsubmit="searchGradingDatabase(event, true)">
+            <div class="record-search-field">
+                <label for="gradingSearchMode">查询粒度</label>
+                <select id="gradingSearchMode" name="mode">
+                    <option value="records">整份批改记录</option>
+                    <option value="questions">逐题批改明细</option>
+                </select>
+            </div>
+            <div class="record-search-field span-2">
+                <label for="gradingSearchKeyword">全局关键词</label>
+                <input id="gradingSearchKeyword" name="keyword" type="search" placeholder="文件、学生、题目、答案或评语">
+            </div>
+            <div class="record-search-field">
+                <label for="gradingSearchDomain">课程类型</label>
+                <select id="gradingSearchDomain" name="domain">
+                    <option value="">全部课程</option>
+                    <option value="java">Java / 通用</option>
+                    <option value="database">数据库</option>
+                </select>
+            </div>
+            <div class="record-search-field">
+                <label for="gradingSearchStudentName">学生姓名</label>
+                <input id="gradingSearchStudentName" name="studentName" type="search" placeholder="如：张三">
+            </div>
+            <div class="record-search-field">
+                <label for="gradingSearchStudentId">学号</label>
+                <input id="gradingSearchStudentId" name="studentId" type="search" placeholder="支持部分匹配">
+            </div>
+            <div class="record-search-field">
+                <label for="gradingSearchClass">班级</label>
+                <input id="gradingSearchClass" name="className" type="search" placeholder="如：计科一班">
+            </div>
+            <div class="record-search-field">
+                <label for="gradingSearchStatus">审核状态</label>
+                <select id="gradingSearchStatus" name="reviewStatus">
+                    <option value="">全部状态</option>
+                    <option value="PENDING_REVIEW">待教师复核</option>
+                    <option value="APPROVED">已确认</option>
+                    <option value="NEEDS_REVISION">需调整</option>
+                </select>
+            </div>
+            <div class="record-search-field">
+                <label for="gradingSearchMinScore">整份最低分</label>
+                <input id="gradingSearchMinScore" name="minScore" type="number" min="0" max="100" placeholder="0">
+            </div>
+            <div class="record-search-field">
+                <label for="gradingSearchMaxScore">整份最高分</label>
+                <input id="gradingSearchMaxScore" name="maxScore" type="number" min="0" max="100" placeholder="100">
+            </div>
+            <div class="record-search-field">
+                <label for="gradingSearchFrom">起始日期</label>
+                <input id="gradingSearchFrom" name="from" type="date">
+            </div>
+            <div class="record-search-field">
+                <label for="gradingSearchTo">截止日期（含）</label>
+                <input id="gradingSearchTo" name="to" type="date">
+            </div>
+            <div class="record-search-field">
+                <label for="gradingSearchQuestionIndex">题号</label>
+                <input id="gradingSearchQuestionIndex" name="questionIndex" type="number" min="1" placeholder="如：3">
+            </div>
+            <div class="record-search-field span-2">
+                <label for="gradingSearchQuestionKeyword">题目专项关键词</label>
+                <input id="gradingSearchQuestionKeyword" name="questionKeyword" type="search" placeholder="题目标题、学生答案、标准答案或评语">
+            </div>
+            <div class="record-search-field">
+                <label for="gradingSearchSort">排序</label>
+                <select id="gradingSearchSort" name="sortBy">
+                    <option value="createdAt">批改时间</option>
+                    <option value="score">成绩</option>
+                    <option value="student">学生姓名</option>
+                    <option value="fileName">文件名</option>
+                    <option value="questionIndex">题号（逐题查询）</option>
+                </select>
+            </div>
+            <div class="record-search-field">
+                <label for="gradingSearchDirection">顺序</label>
+                <select id="gradingSearchDirection" name="sortDirection">
+                    <option value="desc">降序</option>
+                    <option value="asc">升序</option>
+                </select>
+            </div>
+            <div class="record-search-actions">
+                <button class="btn btn-outline" type="button" onclick="resetGradingSearch()">清空条件</button>
+                <button id="gradingSearchSubmit" class="btn btn-primary" type="submit">查询数据库</button>
+            </div>
+        </form>
+        <div class="record-search-meta">
+            <strong id="gradingSearchResultCount">尚未查询</strong>
+            <span id="gradingSearchRange"></span>
+        </div>
+        <div id="gradingSearchResults" class="record-search-results" aria-live="polite"></div>
+        <div class="record-search-pagination">
+            <button id="gradingSearchPrevious" class="record-action" type="button" onclick="pageGradingSearch(-1)" disabled>上一页</button>
+            <span id="gradingSearchPage" class="record-meta">第 1 页</span>
+            <button id="gradingSearchNext" class="record-action" type="button" onclick="pageGradingSearch(1)" disabled>下一页</button>
+        </div>
+    </div>
+</dialog>
+
 <script>
 // ================================================================
 // Tab 切换
 // ================================================================
-function switchTab(name) {
+function switchTab(name, button) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    event.target.classList.add('active');
+    button.classList.add('active');
     document.getElementById('tab-' + name).classList.add('active');
 }
 
@@ -770,10 +1490,26 @@ function switchTab(name) {
 function renderMarkdown(text) {
     if (!text || !text.trim()) return '';
     if (window.marked && typeof marked.parse === 'function') {
-        return marked.parse(text);
+        return sanitizeRenderedHtml(marked.parse(text));
     }
     return '<pre style="white-space:pre-wrap;background:#f8fafc;color:var(--text);border:1px solid var(--border);">' +
         escapeHtml(text) + '</pre>';
+}
+
+function sanitizeRenderedHtml(html) {
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    template.content.querySelectorAll('script,iframe,object,embed,link,style').forEach(el => el.remove());
+    template.content.querySelectorAll('*').forEach(el => {
+        for (const attr of [...el.attributes]) {
+            const name = attr.name.toLowerCase();
+            const value = attr.value.trim().toLowerCase();
+            if (name.startsWith('on') || ((name === 'href' || name === 'src') && value.startsWith('javascript:'))) {
+                el.removeAttribute(attr.name);
+            }
+        }
+    });
+    return template.innerHTML;
 }
 
 function injectBadges(html) {
@@ -785,17 +1521,749 @@ function injectBadges(html) {
 }
 
 // ================================================================
+// 答案库驱动的自动批量批改
+// ================================================================
+let batchAnswerKeys = [];
+let batchSelectedKey = null;
+let batchReferenceFile = null;
+let batchStudentFiles = [];
+let batchPreview = null;
+let batchScoresDirty = false;
+let batchLastResult = null;
+
+async function loadAnswerKeys(preferredId = '') {
+    const select = document.getElementById('batchAnswerKeySelect');
+    const course = document.getElementById('batchCourseType').value;
+    const previous = preferredId || (batchSelectedKey && batchSelectedKey.id) || select.value;
+    try {
+        const query = course === 'auto' ? '' : `?courseType=${encodeURIComponent(course)}`;
+        const response = await fetch('/api/answer-keys' + query);
+        if (!response.ok) throw new Error(await readErrorResponse(response));
+        batchAnswerKeys = await response.json();
+        select.innerHTML = '<option value="">请选择答案库</option>' + batchAnswerKeys.map(key =>
+            `<option value="${escapeHtml(key.id)}">${escapeHtml(key.name)} · ${key.courseType === 'database' ? '数据库' : 'Java'} · ${key.questionCount}题</option>`
+        ).join('');
+        const selected = batchAnswerKeys.find(key => key.id === previous) || batchAnswerKeys[0] || null;
+        select.value = selected ? selected.id : '';
+        selectBatchAnswerKey(select.value);
+    } catch (error) {
+        select.innerHTML = '<option value="">答案库读取失败</option>';
+        document.getElementById('batchKeySummary').innerHTML =
+            `<div class="record-empty">答案库读取失败：${escapeHtml(error.message)}</div>`;
+    }
+}
+
+function selectBatchAnswerKey(id) {
+    batchSelectedKey = batchAnswerKeys.find(key => key.id === id) || null;
+    batchScoresDirty = false;
+    renderBatchKeySummary();
+    updateBatchButtons();
+}
+
+function renderBatchKeySummary() {
+    const container = document.getElementById('batchKeySummary');
+    if (!batchSelectedKey) {
+        container.innerHTML = '<div class="record-empty" style="margin-top:12px">尚未选择答案库，可上传参考答案自动建立。</div>';
+        return;
+    }
+    const key = batchSelectedKey;
+    container.innerHTML = `
+        <div class="batch-key-card">
+            <div class="batch-key-head">
+                <div><div class="batch-key-title">${escapeHtml(key.name)}</div>
+                <div class="parse-note">${escapeHtml(key.sourceFileName)} · ${key.courseType === 'database' ? '数据库原理' : 'Java 程序设计'}</div></div>
+                <span class="type-badge">${key.questionCount} 题 / 100 分</span>
+            </div>
+            <div style="overflow-x:auto">
+                <table class="batch-score-table">
+                    <thead><tr><th>题号</th><th>题目</th><th>评分细则</th><th>分值</th></tr></thead>
+                    <tbody>${(key.questions || []).map(question => `
+                        <tr>
+                            <td>第 ${question.index} 题</td>
+                            <td>${escapeHtml(question.title || '')}</td>
+                            <td>${escapeHtml(question.rubric || '未写明细则')}</td>
+                            <td><input class="batch-score-input" type="number" min="1" max="100"
+                                data-score-index="${question.index}" value="${question.maxScore}"
+                                onchange="batchScoreChanged()">${question.scoreInferred ? '<span class="score-auto">系统推定</span>' : ''}</td>
+                        </tr>`).join('')}</tbody>
+                </table>
+            </div>
+            <div id="batchScoreTotal" class="batch-score-total">
+                <span>分值合计</span><strong>${key.maxScore}/100</strong>
+                <button class="record-action" type="button" onclick="saveBatchScores()">保存分值</button>
+            </div>
+        </div>`;
+    batchScoreChanged(false);
+}
+
+function currentBatchScores() {
+    return [...document.querySelectorAll('[data-score-index]')].map(input => ({
+        index: Number(input.dataset.scoreIndex),
+        maxScore: Number(input.value)
+    }));
+}
+
+function batchScoreChanged(markDirty = true) {
+    const scores = currentBatchScores();
+    const total = scores.reduce((sum, item) => sum + (Number.isFinite(item.maxScore) ? item.maxScore : 0), 0);
+    const totalBox = document.getElementById('batchScoreTotal');
+    if (totalBox) {
+        totalBox.classList.toggle('invalid', total !== 100);
+        const strong = totalBox.querySelector('strong');
+        if (strong) strong.textContent = `${total}/100`;
+    }
+    if (markDirty) batchScoresDirty = true;
+    updateBatchButtons();
+    return total;
+}
+
+async function saveBatchScores() {
+    if (!batchSelectedKey) throw new Error('请先选择答案库');
+    const scores = currentBatchScores();
+    if (!scores.length || batchScoreChanged(false) !== 100) {
+        alert('整份作业的逐题分值合计必须正好为 100');
+        return false;
+    }
+    try {
+        const response = await fetch(`/api/answer-keys/${encodeURIComponent(batchSelectedKey.id)}/scores`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ scores })
+        });
+        if (!response.ok) throw new Error(await readErrorResponse(response));
+        const updated = await response.json();
+        const index = batchAnswerKeys.findIndex(key => key.id === updated.id);
+        if (index >= 0) batchAnswerKeys[index] = updated;
+        batchSelectedKey = updated;
+        batchScoresDirty = false;
+        renderBatchKeySummary();
+        updateBatchButtons();
+        return true;
+    } catch (error) {
+        alert('保存分值失败：' + error.message);
+        return false;
+    }
+}
+
+function handleBatchReference(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    if (!validBatchDocx(file)) {
+        event.target.value = '';
+        return;
+    }
+    batchReferenceFile = file;
+    document.getElementById('batchReferenceName').innerHTML = batchFileChip(file, '参考答案');
+    updateBatchButtons();
+}
+
+function handleBatchStudents(event) {
+    setBatchStudentFiles([...event.target.files]);
+}
+
+function handleBatchFolder(event) {
+    const files = [...event.target.files].filter(file => file.name.toLowerCase().endsWith('.docx'));
+    if (!files.length) {
+        alert('所选文件夹中没有 DOCX 文件');
+        return;
+    }
+    const references = files.filter(file => /(参考答案|标准答案|评分标准)/.test(file.name));
+    let candidates = files;
+    if (references.length > 1) {
+        const course = document.getElementById('batchCourseType').value;
+        if (course === 'auto') {
+            alert('检测到多个课程的参考答案。请先选择 Java 或数据库课程，或直接选择单个课程子文件夹。');
+            return;
+        }
+        const marker = course === 'database' ? /(DB|数据库)/i : /Java/i;
+        const selectedReference = references.find(file => marker.test(file.name) || marker.test(file.webkitRelativePath));
+        if (!selectedReference) {
+            alert('所选文件夹中未找到当前课程的参考答案');
+            return;
+        }
+        const parent = selectedReference.webkitRelativePath.split('/').slice(0, -1).join('/');
+        candidates = files.filter(file => file.webkitRelativePath.startsWith(parent + '/'));
+    }
+    const reference = candidates.find(file => /(参考答案|标准答案|评分标准)/.test(file.name));
+    if (reference) {
+        batchReferenceFile = reference;
+        document.getElementById('batchReferenceName').innerHTML = batchFileChip(reference, '自动识别为参考答案');
+    }
+    setBatchStudentFiles(candidates.filter(file => file !== reference
+        && !/(参考答案|标准答案|评分标准)/.test(file.name)));
+}
+
+function setBatchStudentFiles(files) {
+    const accepted = [];
+    for (const file of files) {
+        if (validBatchDocx(file, false)) accepted.push(file);
+    }
+    batchStudentFiles = accepted.slice(0, 50);
+    document.getElementById('batchStudentList').innerHTML = batchStudentFiles.length
+        ? batchStudentFiles.map((file, index) => batchFileChip(file, `学生作业 ${index + 1}`)).join('')
+        : '<div class="record-empty">尚未选择学生作业</div>';
+    batchPreview = null;
+    document.getElementById('batchPreviewPanel').style.display = 'none';
+    document.getElementById('batchGradeBtn').disabled = true;
+    updateBatchButtons();
+}
+
+function changeBatchAiRecognition() {
+    batchPreview = null;
+    document.getElementById('batchPreviewPanel').style.display = 'none';
+    document.getElementById('batchGradeBtn').disabled = true;
+    updateBatchButtons();
+}
+
+function validBatchDocx(file, showAlert = true) {
+    let message = '';
+    if (!file.name.toLowerCase().endsWith('.docx')) message = '仅支持 .docx 格式';
+    else if (file.size <= 0) message = `${file.name} 是空文件`;
+    else if (file.size > 10 * 1024 * 1024) message = `${file.name} 超过 10MB`;
+    if (message && showAlert) alert(message);
+    return !message;
+}
+
+function batchFileChip(file, label) {
+    return `<div class="batch-file-chip"><span>${escapeHtml(file.name)}</span><span>${escapeHtml(label)} · ${(file.size / 1024).toFixed(1)}KB</span></div>`;
+}
+
+function updateBatchButtons() {
+    const canPrepare = batchStudentFiles.length > 0 && (batchReferenceFile || batchSelectedKey);
+    document.getElementById('batchPreviewBtn').disabled = !canPrepare;
+    const scoreTotal = currentBatchScores().reduce((sum, item) => sum + item.maxScore, 0);
+    document.getElementById('batchGradeBtn').disabled =
+        !batchPreview || !batchSelectedKey || scoreTotal !== 100 || batchScoresDirty;
+}
+
+async function prepareBatch() {
+    if (!batchStudentFiles.length) { alert('请先选择学生作业'); return; }
+    const button = document.getElementById('batchPreviewBtn');
+    button.disabled = true;
+    button.textContent = batchReferenceFile ? '正在建立答案库...' : '正在预检匹配...';
+    try {
+        if (batchReferenceFile) {
+            const importForm = new FormData();
+            importForm.append('file', batchReferenceFile);
+            importForm.append('courseType', document.getElementById('batchCourseType').value);
+            const importResponse = await fetch('/api/answer-keys', { method: 'POST', body: importForm });
+            if (!importResponse.ok) throw new Error(await readErrorResponse(importResponse));
+            const imported = await importResponse.json();
+            const existing = batchAnswerKeys.findIndex(key => key.id === imported.id);
+            if (existing >= 0) batchAnswerKeys[existing] = imported;
+            else batchAnswerKeys.unshift(imported);
+            batchSelectedKey = imported;
+            batchScoresDirty = false;
+            document.getElementById('batchCourseType').value = imported.courseType;
+            await loadAnswerKeys(imported.id);
+            batchReferenceFile = null;
+        }
+        if (!batchSelectedKey) throw new Error('请上传参考答案或选择已有答案库');
+        if (batchScoresDirty && !(await saveBatchScores())) {
+            throw new Error('逐题分值尚未保存');
+        }
+        if (batchScoreChanged(false) !== 100) throw new Error('逐题分值合计不是 100，请先校正');
+
+        button.textContent = '正在预检匹配...';
+        const form = new FormData();
+        form.append('answerKeyId', batchSelectedKey.id);
+        form.append('aiQuestionRecognition', String(
+            document.getElementById('batchAiQuestionRecognition').checked));
+        batchStudentFiles.forEach(file => form.append('files', file));
+        const response = await fetch('/api/batch/preview', { method: 'POST', body: form });
+        if (!response.ok) throw new Error(await readErrorResponse(response));
+        batchPreview = await response.json();
+        renderBatchPreview(batchPreview);
+        batchScoresDirty = false;
+        updateBatchButtons();
+    } catch (error) {
+        batchPreview = null;
+        document.getElementById('batchPreviewPanel').style.display = 'none';
+        alert('批量预检失败：' + error.message);
+    } finally {
+        button.textContent = '自动建库并预检匹配';
+        updateBatchButtons();
+    }
+}
+
+function renderBatchPreview(preview) {
+    const body = document.getElementById('batchPreviewBody');
+    const files = preview.files || [];
+    body.innerHTML = files.map(file => {
+        const complete = file.matchedCount === preview.answerKey.questionCount;
+        const notes = [];
+        if (file.recognition && file.recognition.requested) {
+            notes.push(`<span class="${file.recognition.aiUsed ? 'match-ok' : 'match-warn'}">${escapeHtml(file.recognition.message || '题目边界复核完成')}</span>`);
+        }
+        for (const warning of (file.warnings || [])) {
+            notes.push(`<span class="match-warn">${escapeHtml(warning)}</span>`);
+        }
+        return `<tr>
+            <td><strong>${escapeHtml(file.student.name || '未识别')}</strong></td>
+            <td>${escapeHtml(file.student.studentId || '无学号')}<br><span class="parse-note">${escapeHtml(file.student.className || '无班级')}</span></td>
+            <td>${escapeHtml(file.fileName)}</td>
+            <td class="${complete ? 'match-ok' : 'match-warn'}">${file.matchedCount}/${preview.answerKey.questionCount}</td>
+            <td>${notes.length ? notes.join('<br>') : '<span class="match-ok">题号完整</span>'}</td>
+        </tr>`;
+    }).join('');
+    const allMatched = files.every(file => file.matchedCount === preview.answerKey.questionCount);
+    document.getElementById('batchMatchBadge').textContent = allMatched ? '全部匹配' : '存在缺题，将按未作答计分';
+    document.getElementById('batchPreviewPanel').style.display = 'block';
+}
+
+async function startBatchGrading() {
+    if (!batchPreview || !batchSelectedKey || !batchStudentFiles.length) return;
+    if (batchScoresDirty && !(await saveBatchScores())) return;
+    if (batchScoreChanged(false) !== 100) { alert('逐题分值合计必须为 100'); return; }
+
+    const button = document.getElementById('batchGradeBtn');
+    const progress = document.getElementById('batchProgress');
+    button.disabled = true;
+    button.textContent = '批量批改中...';
+    progress.style.display = 'block';
+    document.getElementById('batchProgressText').innerHTML = '<span class="spinner"></span> 正在启动答案库批改...';
+    document.getElementById('batchProgressBar').style.width = '0%';
+    document.getElementById('batchResults').innerHTML = '';
+    document.getElementById('batchSummary').style.display = 'none';
+    document.getElementById('batchExportBtn').style.display = 'none';
+    batchLastResult = null;
+    let completedQuestions = 0;
+    const expectedQuestions = batchStudentFiles.length * batchSelectedKey.questionCount;
+    let streamError = '';
+
+    const form = new FormData();
+    form.append('answerKeyId', batchSelectedKey.id);
+    form.append('aiQuestionRecognition', String(
+        document.getElementById('batchAiQuestionRecognition').checked));
+    batchStudentFiles.forEach(file => form.append('files', file));
+    try {
+        const response = await fetch('/api/batch/grade/stream', { method: 'POST', body: form });
+        if (!response.ok) throw new Error(await readErrorResponse(response));
+        await readSseEvents(response, (eventName, eventData) => {
+            if (eventName === 'preview') {
+                batchPreview = JSON.parse(eventData);
+                renderBatchPreview(batchPreview);
+            } else if (eventName === 'file-start') {
+                const data = JSON.parse(eventData);
+                document.getElementById('batchProgressText').innerHTML =
+                    `<span class="spinner"></span> 正在批改 ${escapeHtml(data.student.name || data.fileName)}（${data.fileIndex + 1}/${batchStudentFiles.length}）`;
+            } else if (eventName === 'question') {
+                completedQuestions++;
+                const pct = expectedQuestions ? Math.min(100, completedQuestions / expectedQuestions * 100) : 0;
+                document.getElementById('batchProgressBar').style.width = `${pct}%`;
+            } else if (eventName === 'file-result') {
+                renderBatchFileResult(JSON.parse(eventData));
+            } else if (eventName === 'summary') {
+                batchLastResult = JSON.parse(eventData);
+                renderBatchSummary(batchLastResult);
+            } else if (eventName === 'error') {
+                streamError = JSON.parse(eventData).message || '批量批改失败';
+            }
+        });
+        if (streamError) throw new Error(streamError);
+        document.getElementById('batchProgressBar').style.width = '100%';
+        document.getElementById('batchProgressText').textContent = '批量批改完成，结果已写入教师复核记录。';
+        document.getElementById('batchExportBtn').style.display = 'inline-flex';
+        await loadGradingRecords();
+    } catch (error) {
+        document.getElementById('batchProgressText').textContent = '批量批改中断：' + error.message;
+        alert('批量批改失败：' + error.message);
+    } finally {
+        button.textContent = '开始自动批量批改';
+        updateBatchButtons();
+    }
+}
+
+function renderBatchFileResult(file) {
+    const student = file.student || {};
+    const grading = file.grading || { questions: [] };
+    const card = document.createElement('article');
+    card.className = 'batch-result-card';
+    card.innerHTML = `
+        <div class="batch-result-head">
+            <div><strong>${escapeHtml(student.name || file.fileName)}</strong>
+            <div class="parse-note">${escapeHtml(student.studentId || '无学号')} · ${escapeHtml(student.className || '无班级')} · ${escapeHtml(file.fileName)}</div></div>
+            <div class="batch-result-score">${grading.totalScore}/${grading.maxTotalScore}</div>
+        </div>
+        ${(grading.questions || []).map(question => `
+            <details class="batch-question-detail">
+                <summary><span>第 ${question.index} 题 · ${escapeHtml(question.title || '')}</span><span>${question.score}/${question.maxScore}</span></summary>
+                <div class="batch-question-report md-content">
+                    <div class="parse-note" style="margin-bottom:8px">评分路径：${escapeHtml(question.gradingMethod || 'answer-key-ai')}</div>
+                    ${renderMarkdown(question.report || '暂无评语')}
+                    ${renderImageAnalyses(question.imageAnalyses || [], question.imageComparison || '')}
+                    ${(question.sources || []).length ? `<div class="sources-box" style="margin-top:12px"><strong>知识库依据</strong>
+                        ${question.sources.map(source => `<div class="source-item"><strong>${escapeHtml(source.type === 'reference' ? '参考答案' : '评分标准')}</strong> | ${escapeHtml(source.source || '')}<br>
+                        <span style="color:#64748b">${escapeHtml((source.text || '').substring(0,240))}</span></div>`).join('')}</div>` : ''}
+                </div>
+            </details>`).join('')}`;
+    document.getElementById('batchResults').appendChild(card);
+}
+
+function renderBatchSummary(result) {
+    const files = [...(result.files || [])].sort((a, b) => b.grading.totalScore - a.grading.totalScore);
+    const container = document.getElementById('batchSummary');
+    container.innerHTML = `
+        <div class="batch-summary-card">
+            <h3>本批完成 · ${escapeHtml(result.answerKey.name)}</h3>
+            <div class="batch-summary-stats">
+                <span><strong>${files.length}</strong>份作业</span>
+                <span><strong>${Number(result.averageScore).toFixed(1)}</strong>平均分</span>
+                <span><strong>100</strong>满分</span>
+            </div>
+        </div>
+        <div class="batch-preview-panel">
+            <div class="batch-panel-head"><h3>成绩汇总</h3><span class="parse-note">每份结果均已进入教师复核记录</span></div>
+            <div style="overflow-x:auto"><table class="batch-rank-table">
+                <thead><tr><th>序号</th><th>姓名</th><th>学号</th><th>班级</th><th>成绩</th><th>匹配</th></tr></thead>
+                <tbody>${files.map((file, index) => `<tr><td>${index + 1}</td><td>${escapeHtml(file.student.name)}</td>
+                    <td>${escapeHtml(file.student.studentId || '')}</td><td>${escapeHtml(file.student.className || '')}</td>
+                    <td><strong>${file.grading.totalScore}/100</strong></td><td>${file.matchedCount}/${file.questionCount}</td></tr>`).join('')}</tbody>
+            </table></div>
+        </div>`;
+    container.style.display = 'block';
+}
+
+function exportBatchCsv() {
+    if (!batchLastResult) return;
+    const csvCell = value => {
+        let safe = String(value == null ? '' : value);
+        if (/^[=+\-@\t\r]/.test(safe)) safe = "'" + safe;
+        return `"${safe.replace(/"/g, '""')}"`;
+    };
+    const rows = [['姓名','学号','班级','文件名','得分','满分','题目匹配数']];
+    for (const file of batchLastResult.files || []) {
+        rows.push([file.student.name, file.student.studentId, file.student.className,
+            file.fileName, file.grading.totalScore, file.grading.maxTotalScore,
+            `${file.matchedCount}/${file.questionCount}`]);
+    }
+    const blob = new Blob(['\uFEFF' + rows.map(row => row.map(csvCell).join(',')).join('\r\n')],
+        { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${batchLastResult.answerKey.name}-批量成绩.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+}
+
+// ================================================================
 // 作业文档批改
 // ================================================================
 let selectedHomeworkFile = null;
+let parsedHomeworkQuestions = [];
+let homeworkCoursePreference = 'auto';
+let detectedHomeworkCourseType = '';
+let selectedHomeworkCourseType = '';
 
 function handleHomeworkFile(e) {
     const f = e.target.files[0];
-    if (!f) return;
-    selectedHomeworkFile = f;
-    document.getElementById('selectedFileName').textContent = f.name;
+    if (f) selectHomeworkFile(f);
+}
+
+function homeworkCourseLabel(type) {
+    return type === 'database' ? '数据库原理' : 'Java 程序设计';
+}
+
+function singleHomeworkButtonLabel() {
+    if (!selectedHomeworkFile || !selectedHomeworkCourseType) return '选择作业后开始批改';
+    return selectedHomeworkCourseType === 'database'
+        ? '开始批改数据库作业'
+        : '按逐题配置开始批改';
+}
+
+function clearSingleHomeworkResults() {
+    document.getElementById('hwSummary').style.display = 'none';
+    document.getElementById('hwSummary').innerHTML = '';
+    document.getElementById('hwResults').innerHTML = '';
+    document.getElementById('hwSourcesArea').style.display = 'none';
+    document.getElementById('hwSourcesContent').innerHTML = '';
+}
+
+function renderQuestionRecognition(info) {
+    const status = document.getElementById('singleRecognitionStatus');
+    if (!info) {
+        status.className = 'recognition-status';
+        status.textContent = document.getElementById('singleAiQuestionRecognition').checked
+            ? '等待 AI 复核题目边界。' : '当前使用本地规则识别题目。';
+        return;
+    }
+    status.className = 'recognition-status'
+        + (info.aiUsed ? ' ai-used' : (info.requested ? ' fallback' : ''));
+    const confidence = info.aiUsed && Number.isFinite(Number(info.confidence))
+        ? `，置信度 ${Math.round(Number(info.confidence) * 100)}%` : '';
+    status.textContent = `${info.message || '题目边界识别完成'}${confidence}`;
+}
+
+async function changeSingleAiRecognition(input) {
+    if (!selectedHomeworkFile) {
+        renderQuestionRecognition(null);
+        return;
+    }
+    if (parsedHomeworkQuestions.length
+        && !confirm('切换题目识别方式需要重新解析文档，当前逐题配置会被清空。是否继续？')) {
+        input.checked = !input.checked;
+        return;
+    }
+    await selectHomeworkFile(selectedHomeworkFile);
+}
+
+function updateSingleHomeworkMode() {
+    const hasFile = Boolean(selectedHomeworkFile);
+    const chosen = homeworkCoursePreference === 'auto'
+        ? detectedHomeworkCourseType
+        : homeworkCoursePreference;
+    selectedHomeworkCourseType = hasFile ? chosen : '';
+    const visualType = chosen || (homeworkCoursePreference === 'auto' ? '' : homeworkCoursePreference);
+    const isDatabase = visualType === 'database';
+    const badge = document.getElementById('singleCourseBadge');
+    const illustration = document.getElementById('singleUploadIllustration');
+
+    badge.className = 'single-detected-badge' + (visualType ? ` ${visualType}` : '');
+    if (!hasFile) {
+        badge.textContent = homeworkCoursePreference === 'auto'
+            ? '等待上传'
+            : `手动：${homeworkCourseLabel(homeworkCoursePreference)}`;
+    } else {
+        badge.textContent = homeworkCoursePreference === 'auto'
+            ? `自动识别：${homeworkCourseLabel(chosen)}`
+            : `手动指定：${homeworkCourseLabel(chosen)}`;
+    }
+
+    illustration.src = isDatabase
+        ? '/assets/ui/database-evidence.webp'
+        : '/assets/ui/upload-documents.webp';
+    document.getElementById('singleUploadFormat').textContent = isDatabase
+        ? 'DOCX · SQL'
+        : (visualType === 'java' ? 'DOCX · JAVA' : 'DOCX · AUTO');
+    document.getElementById('singleUploadTitle').textContent = isDatabase
+        ? '上传数据库作业并执行核验'
+        : (visualType === 'java' ? '上传 Java 作业并逐题配置' : '点击或拖拽上传 Java / 数据库作业');
+    document.getElementById('singleUploadDescription').textContent = isDatabase
+        ? '识别初始化 SQL 与学生 SQL，结合真实执行结果、知识库依据和安全拦截证据评分。'
+        : (visualType === 'java'
+            ? '自动拆分编程题、选择题、主观题与图片作答，并在正式批改前逐题确认。'
+            : '自动识别课程类型，并进入逐题配置或 SQL 执行核验流程。');
+
+    const javaReady = hasFile && chosen === 'java' && parsedHomeworkQuestions.length > 0;
+    document.getElementById('questionConfigPanel').style.display = javaReady ? 'block' : 'none';
+    document.getElementById('databaseModeHint').style.display =
+        hasFile && chosen === 'database' ? 'block' : 'none';
+    document.getElementById('selectedCourseText').textContent = hasFile && chosen
+        ? `当前流程：${homeworkCourseLabel(chosen)}`
+        : '';
+    document.getElementById('hwSourcesTitle').textContent = isDatabase
+        ? '检索到的数据库上下文（RAG 源文档）'
+        : '检索到的上下文（RAG 源文档）';
+    document.getElementById('hwBtn').disabled =
+        !hasFile || !chosen || (chosen === 'java' && !parsedHomeworkQuestions.length);
+    document.getElementById('hwBtn').textContent = singleHomeworkButtonLabel();
+}
+
+function changeSingleCourseType(value) {
+    homeworkCoursePreference = ['auto', 'java', 'database'].includes(value) ? value : 'auto';
+    clearSingleHomeworkResults();
+    updateSingleHomeworkMode();
+}
+
+function resetSingleHomeworkSelection() {
+    selectedHomeworkFile = null;
+    parsedHomeworkQuestions = [];
+    detectedHomeworkCourseType = '';
+    selectedHomeworkCourseType = '';
+    document.getElementById('fileNameDisplay').style.display = 'none';
+    document.getElementById('questionConfigPanel').style.display = 'none';
+    document.getElementById('questionConfigList').innerHTML = '';
+    document.getElementById('databaseModeHint').style.display = 'none';
+    document.getElementById('homeworkFile').value = '';
+    renderQuestionRecognition(null);
+    clearSingleHomeworkResults();
+    updateSingleHomeworkMode();
+}
+
+async function selectHomeworkFile(file) {
+    if (!file.name.toLowerCase().endsWith('.docx')) {
+        resetSingleHomeworkSelection();
+        alert('请上传 .docx 格式的 Word 文档');
+        return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+        resetSingleHomeworkSelection();
+        alert('作业文档不能超过 10MB');
+        return;
+    }
+    selectedHomeworkFile = file;
+    parsedHomeworkQuestions = [];
+    detectedHomeworkCourseType = '';
+    selectedHomeworkCourseType = '';
+    document.getElementById('selectedFileName').textContent = file.name;
     document.getElementById('fileNameDisplay').style.display = 'block';
-    document.getElementById('hwBtn').disabled = false;
+    document.getElementById('questionConfigPanel').style.display = 'none';
+    document.getElementById('questionConfigList').innerHTML = '';
+    document.getElementById('databaseModeHint').style.display = 'none';
+    document.getElementById('hwBtn').disabled = true;
+    document.getElementById('hwParseProgress').style.display = 'block';
+    document.getElementById('hwParseProgressText').textContent =
+        document.getElementById('singleAiQuestionRecognition').checked
+            ? '正在解析文档并由 AI 复核题目边界...'
+            : (homeworkCoursePreference === 'auto'
+                ? '正在解析文档并识别课程类型...'
+                : `正在解析 ${homeworkCourseLabel(homeworkCoursePreference)} 作业...`);
+    clearSingleHomeworkResults();
+
+    const form = new FormData();
+    form.append('file', file);
+    form.append('aiQuestionRecognition', String(
+        document.getElementById('singleAiQuestionRecognition').checked));
+    try {
+        const response = await fetch('/api/homework/parse', { method: 'POST', body: form });
+        if (!response.ok) throw new Error(await readErrorResponse(response));
+        const preview = await response.json();
+        parsedHomeworkQuestions = preview.questions || [];
+        renderQuestionRecognition(preview.recognition);
+        detectedHomeworkCourseType = preview.courseType === 'database' ? 'database' : 'java';
+        const chosen = homeworkCoursePreference === 'auto'
+            ? detectedHomeworkCourseType
+            : homeworkCoursePreference;
+        if (chosen === 'java' && !parsedHomeworkQuestions.length) {
+            throw new Error('文档中没有识别到可批改的 Java 题目');
+        }
+        if (parsedHomeworkQuestions.length) renderQuestionConfigs(parsedHomeworkQuestions);
+        document.getElementById('parsedQuestionCount').textContent = `已拆分 ${parsedHomeworkQuestions.length} 题`;
+        updateSingleHomeworkMode();
+    } catch (error) {
+        resetSingleHomeworkSelection();
+        alert('文档解析失败：' + error.message);
+    } finally {
+        document.getElementById('hwParseProgress').style.display = 'none';
+    }
+}
+
+function renderQuestionConfigs(questions) {
+    const container = document.getElementById('questionConfigList');
+    container.innerHTML = '';
+    for (const q of questions) {
+        const type = ['programming','choice','subjective','image'].includes(q.questionType)
+            ? q.questionType : 'programming';
+        const answer = q.studentAnswer || q.code || '';
+        const card = document.createElement('article');
+        card.className = 'question-config';
+        card.dataset.questionIndex = q.index;
+        card.innerHTML = `
+            <div class="question-config-head">
+                <div>
+                    <div class="question-config-title">第 ${q.index} 题 · ${escapeHtml(q.title || '')}</div>
+                    <div class="parse-note">系统已识别为 ${questionTypeLabel(type)}</div>
+                </div>
+                <span class="type-badge">${questionTypeLabel(type)}</span>
+            </div>
+            <div class="question-config-desc">${escapeHtml(q.description || '（未提取到文字题干）')}</div>
+            ${renderParsedImages(q.images || [], q.index)}
+            ${q.code ? `<details style="margin-top:12px"><summary class="parse-note" style="cursor:pointer">查看解析出的代码</summary><pre style="white-space:pre-wrap;overflow:auto;margin-top:8px;background:#111827;color:#e5e7eb;padding:12px;border-radius:7px">${escapeHtml(q.code)}</pre></details>` : ''}
+            <div class="config-grid">
+                <div class="config-field">
+                    <label for="questionType-${q.index}">题型</label>
+                    <select id="questionType-${q.index}" onchange="updateQuestionConfigVisibility(${q.index})">
+                        ${questionTypeOption('programming', '编程题', type)}
+                        ${questionTypeOption('choice', '选择题（答案对比）', type)}
+                        ${questionTypeOption('subjective', '主观题', type)}
+                        ${questionTypeOption('image', '图片作答题', type)}
+                    </select>
+                </div>
+                <div class="config-field" id="studentAnswerField-${q.index}" style="display:${type === 'programming' ? 'none' : 'grid'}">
+                    <label for="studentAnswer-${q.index}">解析出的学生答案（可校正）</label>
+                    <textarea id="studentAnswer-${q.index}" placeholder="如 A、AC 或学生的文字答案">${escapeHtml(answer)}</textarea>
+                </div>
+                <textarea id="studentAnswerHidden-${q.index}" style="display:none">${escapeHtml(answer)}</textarea>
+                <div class="config-field full">
+                    <label id="correctAnswerLabel-${q.index}" for="correctAnswer-${q.index}">${type === 'choice' ? '标准答案（选择题必填）' : '文字参考答案（可选）'}</label>
+                    <textarea id="correctAnswer-${q.index}" placeholder="${type === 'choice' ? '例如：A；多选可填 AC 或 A,C' : '可填写本题的标准答案或关键得分点'}"></textarea>
+                </div>
+                <div class="config-field full">
+                    <label for="customPrompt-${q.index}">本题定制提示词（可选）</label>
+                    <textarea id="customPrompt-${q.index}" placeholder="例如：重点检查是否使用构造方法重载；忽略输出文案的轻微差异"></textarea>
+                </div>
+                <div class="config-field full">
+                    <label for="referenceImages-${q.index}">参考答案图片（可选，可多张）</label>
+                    <input type="file" id="referenceImages-${q.index}" accept=".png,.jpg,.jpeg,.gif,.webp,.bmp" multiple onchange="showReferenceFiles(${q.index}, this)">
+                    <div id="referenceFileNames-${q.index}" class="parse-note"></div>
+                </div>
+            </div>`;
+        container.appendChild(card);
+    }
+}
+
+function questionTypeOption(value, label, selected) {
+    return `<option value="${value}"${value === selected ? ' selected' : ''}>${label}</option>`;
+}
+
+function questionTypeLabel(type) {
+    return ({ programming:'编程题', choice:'选择题', subjective:'主观题', image:'图片作答题' })[type] || '编程题';
+}
+
+function renderParsedImages(images, questionIndex) {
+    if (!images.length) return '';
+    const roleLabels = { question:'题目配图', student:'学生答案图', reference:'文档内参考答案图' };
+    const cards = images.map(image => {
+        const renderable = /^image\/(png|jpeg|gif|webp|bmp)$/i.test(image.mediaType || '') && image.dataBase64;
+        return `<div class="image-thumb">
+            ${renderable ? `<img alt="${escapeHtml(roleLabels[image.role] || '图片')}" src="data:${escapeHtml(image.mediaType)};base64,${image.dataBase64}">` : '<div style="height:76px;display:grid;place-items:center;background:#f8fafc">图片</div>'}
+            <span>${escapeHtml(roleLabels[image.role] || '题目配图')} · ${escapeHtml(image.fileName || '')}</span>
+            <select class="image-role-select" data-image-id="${escapeHtml(image.id || '')}" aria-label="第 ${questionIndex} 题图片角色">
+                <option value="question"${image.role === 'question' ? ' selected' : ''}>题目配图</option>
+                <option value="student"${image.role === 'student' ? ' selected' : ''}>学生答案图</option>
+                <option value="reference"${image.role === 'reference' ? ' selected' : ''}>参考答案图</option>
+            </select>
+        </div>`;
+    }).join('');
+    return `<div class="image-strip">${cards}</div>`;
+}
+
+function updateQuestionConfigVisibility(index) {
+    const type = document.getElementById(`questionType-${index}`).value;
+    const studentField = document.getElementById(`studentAnswerField-${index}`);
+    studentField.style.display = type === 'programming' ? 'none' : 'grid';
+    const label = document.getElementById(`correctAnswerLabel-${index}`);
+    const answer = document.getElementById(`correctAnswer-${index}`);
+    label.textContent = type === 'choice' ? '标准答案（选择题必填）' : '文字参考答案（可选）';
+    answer.placeholder = type === 'choice'
+        ? '例如：A；多选可填 AC 或 A,C'
+        : '可填写本题的标准答案或关键得分点';
+    const card = document.querySelector(`.question-config[data-question-index="${index}"]`);
+    card.querySelector('.type-badge').textContent = questionTypeLabel(type);
+}
+
+function showReferenceFiles(index, input) {
+    const names = [...input.files].map(file => file.name).join('、');
+    document.getElementById(`referenceFileNames-${index}`).textContent = names
+        ? `已选择：${names}` : '';
+}
+
+function collectQuestionConfigs() {
+    return parsedHomeworkQuestions.map(q => {
+        const type = document.getElementById(`questionType-${q.index}`).value;
+        const correctAnswer = document.getElementById(`correctAnswer-${q.index}`).value.trim();
+        if (type === 'choice' && !correctAnswer) {
+            throw new Error(`第 ${q.index} 题是选择题，请填写标准答案`);
+        }
+        const visibleStudentAnswer = document.getElementById(`studentAnswer-${q.index}`).value;
+        const hiddenStudentAnswer = document.getElementById(`studentAnswerHidden-${q.index}`).value;
+        const card = document.querySelector(`.question-config[data-question-index="${q.index}"]`);
+        const imageRoles = {};
+        card.querySelectorAll('.image-role-select').forEach(select => {
+            imageRoles[select.dataset.imageId] = select.value;
+        });
+        return {
+            index: q.index,
+            questionType: type,
+            correctAnswer,
+            customPrompt: document.getElementById(`customPrompt-${q.index}`).value.trim(),
+            studentAnswer: type === 'programming' ? hiddenStudentAnswer : visibleStudentAnswer,
+            imageRoles
+        };
+    });
 }
 
 // 拖拽上传
@@ -806,18 +2274,31 @@ uploadArea.addEventListener('drop', e => {
     e.preventDefault();
     uploadArea.classList.remove('dragover');
     const f = e.dataTransfer.files[0];
-    if (f && f.name.endsWith('.docx')) {
-        selectedHomeworkFile = f;
-        document.getElementById('selectedFileName').textContent = f.name;
-        document.getElementById('fileNameDisplay').style.display = 'block';
-        document.getElementById('hwBtn').disabled = false;
-    } else {
-        alert('请上传 .docx 格式的 Word 文档');
-    }
+    if (f) selectHomeworkFile(f);
 });
 
-function startHomeworkGrading() {
+function startUnifiedHomeworkGrading() {
+    if (!selectedHomeworkFile) {
+        alert('请先上传作业文档');
+        return;
+    }
+    if (selectedHomeworkCourseType === 'database') {
+        startDatabaseHomeworkGrading();
+    } else {
+        startHomeworkGrading();
+    }
+}
+
+async function startHomeworkGrading() {
     if (!selectedHomeworkFile) { alert('请先上传作业文档'); return; }
+
+    let configs;
+    try {
+        configs = collectQuestionConfigs();
+    } catch (error) {
+        alert(error.message);
+        return;
+    }
 
     const btn = document.getElementById('hwBtn');
     const progress = document.getElementById('hwProgress');
@@ -827,113 +2308,132 @@ function startHomeworkGrading() {
 
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span> 批改中...';
+    document.getElementById('hwProgressText').textContent = '正在按题型逐题批改并处理图片...';
     progress.style.display = 'block';
     resultsEl.innerHTML = '';
     summaryEl.style.display = 'none';
     summaryEl.innerHTML = '';
     sourcesEl.innerHTML = '';
+    document.getElementById('hwSourcesArea').style.display = 'none';
 
     const form = new FormData();
     form.append('file', selectedHomeworkFile);
     form.append('category', document.getElementById('category').value);
-
-    // 使用流式接口
-    fetch('/api/homework/grade/stream', {
-        method: 'POST',
-        body: form
-    }).then(response => {
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        let allSources = [];
-
-        function pump() {
-            reader.read().then(({ done, value }) => {
-                if (done) {
-                    btn.disabled = false;
-                    btn.innerHTML = '开始批改';
-                    progress.style.display = 'none';
-                    return;
-                }
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || '';
-
-                let currentEvent = 'message';
-                let dataLines = [];
-
-                function flushEvent() {
-                    if (dataLines.length === 0) return;
-                    const eventData = dataLines.join('\n');
-                    dataLines = [];
-                    if (currentEvent === 'question') {
-                        try {
-                            const q = JSON.parse(eventData);
-                            renderQuestion(q);
-                            if (q.sources) allSources.push(...q.sources);
-                        } catch(e) { console.error('parse question failed', e); }
-                    } else if (currentEvent === 'summary') {
-                        try {
-                            const s = JSON.parse(eventData);
-                            renderSummary(s);
-                        } catch(e) { console.error('parse summary failed', e); }
-                    } else if (currentEvent === 'done') {
-                        // 展示来源
-                        if (allSources.length && document.getElementById('showContext').checked) {
-                            const unique = [];
-                            const seen = new Set();
-                            for (const src of allSources) {
-                                const key = (src.source || '') + '|' + (src.type || '');
-                                if (!seen.has(key)) { seen.add(key); unique.push(src); }
-                            }
-                            sourcesEl.innerHTML = unique.map(x =>
-                                `<div class="source-item"><strong>${x.type==='standard'?'评估标准':'参考范例'}</strong> | ${x.source}<br><span style="color:#64748b">${x.text ? x.text.substring(0,200) : ''}</span></div>`
-                            ).join('');
-                            document.getElementById('hwSourcesArea').style.display = 'block';
-                        }
-                    }
-                }
-
-                for (const line of lines) {
-                    if (line === '') { flushEvent(); currentEvent = 'message'; continue; }
-                    if (line.startsWith('event: ')) { currentEvent = line.slice(7).trim(); continue; }
-                    if (line.startsWith('data: ')) { dataLines.push(line.slice(6)); continue; }
-                }
-                pump();
-            });
+    form.append('configs', JSON.stringify(configs));
+    form.append('aiQuestionRecognition', String(
+        document.getElementById('singleAiQuestionRecognition').checked));
+    for (const q of parsedHomeworkQuestions) {
+        const input = document.getElementById(`referenceImages-${q.index}`);
+        for (const file of [...input.files]) {
+            form.append('referenceImages', file);
+            form.append('referenceImageQuestionIndexes', String(q.index));
         }
-        pump();
-    }).catch(err => {
+    }
+
+    try {
+        const response = await fetch('/api/homework/grade/stream', { method: 'POST', body: form });
+        if (!response.ok) throw new Error(await readErrorResponse(response));
+        let allSources = [];
+        await readSseEvents(response, (eventName, eventData) => {
+            if (eventName === 'recognition') {
+                renderQuestionRecognition(JSON.parse(eventData));
+            } else if (eventName === 'question') {
+                const q = JSON.parse(eventData);
+                renderQuestion(q);
+                if (q.sources) allSources.push(...q.sources);
+            } else if (eventName === 'summary') {
+                renderSummary(JSON.parse(eventData));
+            } else if (eventName === 'error') {
+                const error = JSON.parse(eventData);
+                throw new Error(error.message || '服务端批改失败');
+            } else if (eventName === 'done' && allSources.length && document.getElementById('showContext').checked) {
+                const unique = [];
+                const seen = new Set();
+                for (const src of allSources) {
+                    const key = (src.source || '') + '|' + (src.type || '');
+                    if (!seen.has(key)) { seen.add(key); unique.push(src); }
+                }
+                sourcesEl.innerHTML = unique.map(x =>
+                    `<div class="source-item"><strong>${x.type==='standard'?'评估标准':'参考范例'}</strong> | ${escapeHtml(x.source || '')}<br><span style="color:#64748b">${escapeHtml(x.text ? x.text.substring(0,200) : '')}</span></div>`
+                ).join('');
+                document.getElementById('hwSourcesArea').style.display = 'block';
+            }
+        });
+        await loadGradingRecords();
+    } catch (error) {
+        alert('批改失败：' + error.message);
+    } finally {
         progress.style.display = 'none';
         btn.disabled = false;
-        btn.innerHTML = '开始批改';
-        alert('批改失败: ' + err.message);
-    });
+        btn.textContent = singleHomeworkButtonLabel();
+    }
+}
+
+async function readSseEvents(response, onEvent) {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+        const { done, value } = await reader.read();
+        buffer += decoder.decode(value || new Uint8Array(), { stream: !done }).replace(/\r\n/g, '\n');
+        let boundary;
+        while ((boundary = buffer.indexOf('\n\n')) >= 0) {
+            const block = buffer.slice(0, boundary);
+            buffer = buffer.slice(boundary + 2);
+            dispatchSseBlock(block, onEvent);
+        }
+        if (done) break;
+    }
+    if (buffer.trim()) dispatchSseBlock(buffer, onEvent);
+}
+
+function dispatchSseBlock(block, onEvent) {
+    let eventName = 'message';
+    const data = [];
+    for (const line of block.split('\n')) {
+        if (line.startsWith('event:')) eventName = line.slice(6).trim();
+        if (line.startsWith('data:')) data.push(line.slice(5).trimStart());
+    }
+    if (data.length) onEvent(eventName, data.join('\n'));
+}
+
+async function readErrorResponse(response) {
+    const text = await response.text();
+    try {
+        const data = JSON.parse(text);
+        return data.message || data.error || `${response.status} ${response.statusText}`;
+    } catch (_) {
+        return text || `${response.status} ${response.statusText}`;
+    }
 }
 
 function renderQuestion(q) {
     const dims = q.dimensions || {};
-    const dimOrder = ['requirement','style','logic','performance','maintain'];
-    const dimLabels = { requirement:'是否符合题意', style:'代码规范', logic:'逻辑正确性', performance:'性能与效率', maintain:'可维护性' };
-    const dimMaxs   = { requirement:30, style:20, logic:20, performance:15, maintain:15 };
+    const dimLabels = {
+        requirement:'题意符合度', style:'代码规范', logic:'逻辑正确性',
+        performance:'性能与效率', maintain:'可维护性', accuracy:'内容正确性',
+        completeness:'完整性', method:'解题过程与方法', clarity:'表达清晰度',
+        answer:'答案对比', evaluation:'评估状态'
+    };
 
     let dimHtml = '<div class="score-grid" style="margin-bottom:16px;">';
-    for (const key of dimOrder) {
-        const d = dims[key];
-        if (!d) continue;
-        const pct = (d.score / d.maxScore) * 100;
+    for (const [key, d] of Object.entries(dims)) {
+        const max = Number(d.maxScore) || 0;
+        const pct = max ? Math.max(0, Math.min(100, (Number(d.score) / max) * 100)) : 0;
         const cl = pct >= 80 ? 'high' : pct >= 60 ? 'good' : pct >= 40 ? 'mid' : 'low';
         dimHtml += `
         <div class="score-card ${cl}">
-            <div class="dim-label">${d.label || dimLabels[key]}（满分 ${d.maxScore || dimMaxs[key]}）</div>
-            <div class="dim-score">${d.score}<span class="max">/ ${d.maxScore || dimMaxs[key]}</span></div>
-            ${d.comment ? `<div class="dim-comment">${d.comment}</div>` : ''}
+            <div class="dim-label">${escapeHtml(d.label || dimLabels[key] || key)}（满分 ${max}）</div>
+            <div class="dim-score">${Number(d.score) || 0}<span class="max">/ ${max}</span></div>
+            ${d.comment ? `<div class="dim-comment">${escapeHtml(d.comment)}</div>` : ''}
             <div class="pbar"><div class="pbar-fill ${cl}" style="width:${pct}%"></div></div>
         </div>`;
     }
     dimHtml += '</div>';
 
+    const type = questionTypeLabel(q.questionType || 'programming');
+    const method = ({ 'exact-match':'标准答案精确对比', 'ai-rag':'AI + RAG',
+        'ai-rag-multimodal':'AI + RAG + 多模态', failed:'评估异常' })[q.gradingMethod] || q.gradingMethod || 'AI 评分';
     const card = document.createElement('div');
     card.className = 'q-card';
     card.innerHTML = `
@@ -941,16 +2441,33 @@ function renderQuestion(q) {
             <div>
                 <span class="q-score">${q.score}</span>
                 <span style="font-size:.85rem;color:var(--muted)">/ ${q.maxScore}</span>
-                <span style="margin-left:12px;" class="q-title">第 ${q.index} 题：${q.title}</span>
+                <span style="margin-left:12px;" class="q-title">第 ${q.index} 题 · ${escapeHtml(q.title || '')}</span>
+                <span class="type-badge" style="margin-left:8px">${type}</span>
+                <span class="method-badge" style="margin-left:5px">${escapeHtml(method)}</span>
             </div>
             <span style="font-size:.85rem;color:var(--muted)">点击展开 ▼</span>
         </div>
         <div class="q-body">
             ${dimHtml}
+            ${renderImageAnalyses(q.imageAnalyses || [], q.imageComparison || '')}
             <div class="md-content">${injectBadges(renderMarkdown(q.report || ''))}</div>
         </div>
     `;
     document.getElementById('hwResults').appendChild(card);
+}
+
+function renderImageAnalyses(analyses, comparison) {
+    if (!analyses.length && !comparison) return '';
+    const roleLabels = { question:'题目配图', student:'学生答案图', reference:'参考答案图' };
+    let html = '<div class="image-analysis-box"><strong>图片处理证据</strong>';
+    for (const item of analyses) {
+        html += `<div class="image-analysis-item"><strong>${escapeHtml(roleLabels[item.role] || '图片')} · ${escapeHtml(item.fileName || '')}</strong>
+            <span style="color:${item.success ? 'var(--green)' : 'var(--orange)'}">${item.success ? ' 已转写' : ' 未转写'}</span><br>${escapeHtml(item.description || '')}</div>`;
+    }
+    if (comparison) {
+        html += `<div class="image-analysis-item"><strong>多模态匹配结论</strong><br>${escapeHtml(comparison)}</div>`;
+    }
+    return html + '</div>';
 }
 
 function renderSummary(s) {
@@ -962,7 +2479,7 @@ function renderSummary(s) {
         <div class="total-card">
             <div>
                 <div class="total-label">作业总分</div>
-                <div style="font-size:.85rem;opacity:.8">${s.fileName || ''}</div>
+                <div style="font-size:.85rem;opacity:.8">${escapeHtml(s.fileName || '')}</div>
             </div>
             <div style="text-align:right">
                 <div class="total-score">${s.totalScore}</div>
@@ -977,128 +2494,75 @@ function toggleQuestion(header) {
     const isOpen = body.classList.contains('open');
     body.classList.toggle('open');
     header.classList.toggle('open');
-    header.querySelector('span:last-child').textContent = isOpen ? '点击展开 ▼' : '点击收起 ▲';
+    header.lastElementChild.textContent = isOpen ? '点击展开 ▼' : '点击收起 ▲';
 }
 
 // ================================================================
-// 数据库作业文档批改
+// 统一入口中的数据库作业批改
 // ================================================================
-let selectedDatabaseFile = null;
-
 function escapeHtml(text) {
     return String(text ?? '').replace(/[&<>"']/g, ch => ({
         '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
     }[ch]));
 }
 
-function handleDatabaseFile(e) {
-    const f = e.target.files[0];
-    if (!f) return;
-    selectedDatabaseFile = f;
-    document.getElementById('dbSelectedFileName').textContent = f.name;
-    document.getElementById('dbFileNameDisplay').style.display = 'block';
-    document.getElementById('dbHwBtn').disabled = false;
-}
+async function startDatabaseHomeworkGrading() {
+    if (!selectedHomeworkFile) { alert('请先上传数据库作业文档'); return; }
 
-const dbUploadArea = document.getElementById('dbUploadArea');
-dbUploadArea.addEventListener('dragover', e => { e.preventDefault(); dbUploadArea.classList.add('dragover'); });
-dbUploadArea.addEventListener('dragleave', () => dbUploadArea.classList.remove('dragover'));
-dbUploadArea.addEventListener('drop', e => {
-    e.preventDefault();
-    dbUploadArea.classList.remove('dragover');
-    const f = e.dataTransfer.files[0];
-    if (f && f.name.endsWith('.docx')) {
-        selectedDatabaseFile = f;
-        document.getElementById('dbSelectedFileName').textContent = f.name;
-        document.getElementById('dbFileNameDisplay').style.display = 'block';
-        document.getElementById('dbHwBtn').disabled = false;
-    } else {
-        alert('请上传 .docx 格式的数据库作业文档');
-    }
-});
-
-function startDatabaseHomeworkGrading() {
-    if (!selectedDatabaseFile) { alert('请先上传数据库作业文档'); return; }
-
-    const btn = document.getElementById('dbHwBtn');
-    const progress = document.getElementById('dbHwProgress');
-    const resultsEl = document.getElementById('dbHwResults');
-    const summaryEl = document.getElementById('dbHwSummary');
-    const sourcesEl = document.getElementById('dbHwSourcesContent');
+    const btn = document.getElementById('hwBtn');
+    const progress = document.getElementById('hwProgress');
+    const resultsEl = document.getElementById('hwResults');
+    const summaryEl = document.getElementById('hwSummary');
+    const sourcesEl = document.getElementById('hwSourcesContent');
 
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span> 批改中...';
+    document.getElementById('hwProgressText').textContent =
+        '正在解析数据库作业、执行 SQL 并逐题批改...';
     progress.style.display = 'block';
     resultsEl.innerHTML = '';
     summaryEl.style.display = 'none';
     summaryEl.innerHTML = '';
     sourcesEl.innerHTML = '';
-    document.getElementById('dbHwSourcesArea').style.display = 'none';
+    document.getElementById('hwSourcesArea').style.display = 'none';
 
     const form = new FormData();
-    form.append('file', selectedDatabaseFile);
+    form.append('file', selectedHomeworkFile);
     form.append('category', document.getElementById('category').value);
+    form.append('aiQuestionRecognition', String(
+        document.getElementById('singleAiQuestionRecognition').checked));
 
-    fetch('/api/database/homework/grade/stream', {
-        method: 'POST',
-        body: form
-    }).then(response => {
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        let allSources = [];
-
-        function pump() {
-            reader.read().then(({ done, value }) => {
-                if (done) {
-                    btn.disabled = false;
-                    btn.innerHTML = '开始批改数据库作业';
-                    progress.style.display = 'none';
-                    return;
-                }
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || '';
-
-                let currentEvent = 'message';
-                let dataLines = [];
-
-                function flushEvent() {
-                    if (dataLines.length === 0) return;
-                    const eventData = dataLines.join('\n');
-                    dataLines = [];
-                    if (currentEvent === 'question') {
-                        try {
-                            const q = JSON.parse(eventData);
-                            renderDatabaseQuestion(q);
-                            if (q.sources) allSources.push(...q.sources);
-                        } catch(e) { console.error('parse database question failed', e); }
-                    } else if (currentEvent === 'summary') {
-                        try {
-                            const s = JSON.parse(eventData);
-                            renderDatabaseSummary(s);
-                        } catch(e) { console.error('parse database summary failed', e); }
-                    } else if (currentEvent === 'done') {
-                        renderDatabaseSources(allSources);
-                    }
-                }
-
-                for (const line of lines) {
-                    if (line === '') { flushEvent(); currentEvent = 'message'; continue; }
-                    if (line.startsWith('event: ')) { currentEvent = line.slice(7).trim(); continue; }
-                    if (line.startsWith('data: ')) { dataLines.push(line.slice(6)); continue; }
-                }
-                pump();
-            });
-        }
-        pump();
-    }).catch(err => {
+    try {
+        const response = await fetch('/api/database/homework/grade/stream', {
+            method: 'POST',
+            body: form
+        });
+        if (!response.ok) throw new Error(await readErrorResponse(response));
+        const allSources = [];
+        await readSseEvents(response, (eventName, eventData) => {
+            if (eventName === 'recognition') {
+                renderQuestionRecognition(JSON.parse(eventData));
+            } else if (eventName === 'question') {
+                const q = JSON.parse(eventData);
+                renderDatabaseQuestion(q);
+                if (q.sources) allSources.push(...q.sources);
+            } else if (eventName === 'summary') {
+                renderDatabaseSummary(JSON.parse(eventData));
+            } else if (eventName === 'error') {
+                const error = JSON.parse(eventData);
+                throw new Error(error.message || '服务端批改失败');
+            } else if (eventName === 'done') {
+                renderDatabaseSources(allSources);
+            }
+        });
+        await loadGradingRecords();
+    } catch (error) {
+        alert('数据库作业批改失败：' + error.message);
+    } finally {
         progress.style.display = 'none';
         btn.disabled = false;
-        btn.innerHTML = '开始批改数据库作业';
-        alert('数据库作业批改失败: ' + err.message);
-    });
+        btn.textContent = singleHomeworkButtonLabel();
+    }
 }
 
 function renderDatabaseQuestion(q) {
@@ -1147,7 +2611,7 @@ function renderDatabaseQuestion(q) {
             <div class="md-content">${injectBadges(renderMarkdown(q.report || ''))}</div>
         </div>
     `;
-    document.getElementById('dbHwResults').appendChild(card);
+    document.getElementById('hwResults').appendChild(card);
 }
 
 function renderSqlExecution(execution) {
@@ -1189,7 +2653,7 @@ function renderRowsTable(columns, rows) {
 }
 
 function renderDatabaseSummary(s) {
-    const el = document.getElementById('dbHwSummary');
+    const el = document.getElementById('hwSummary');
     el.style.display = 'block';
     el.innerHTML = `
         <div class="total-card">
@@ -1213,10 +2677,426 @@ function renderDatabaseSources(allSources) {
         const key = (src.source || '') + '|' + (src.type || '');
         if (!seen.has(key)) { seen.add(key); unique.push(src); }
     }
-    document.getElementById('dbHwSourcesContent').innerHTML = unique.map(x =>
+    document.getElementById('hwSourcesContent').innerHTML = unique.map(x =>
         `<div class="source-item"><strong>${x.type==='reference'?'参考范例':'评估标准'}</strong> | ${escapeHtml(x.source)}<br><span style="color:#64748b">${escapeHtml(x.text ? x.text.substring(0,200) : '')}</span></div>`
     ).join('');
-    document.getElementById('dbHwSourcesArea').style.display = 'block';
+    document.getElementById('hwSourcesArea').style.display = 'block';
+}
+
+// ================================================================
+// 批改记录与教师复核
+// ================================================================
+function reviewStatusLabel(status) {
+    return ({
+        PENDING_REVIEW: '待教师复核',
+        APPROVED: '已确认',
+        NEEDS_REVISION: '需调整'
+    })[status] || status || '未知状态';
+}
+
+function reviewStatusClass(status) {
+    return ({
+        PENDING_REVIEW: 'pending',
+        APPROVED: 'approved',
+        NEEDS_REVISION: 'revision'
+    })[status] || 'pending';
+}
+
+function formatRecordTime(value) {
+    if (!value) return '';
+    const time = new Date(value);
+    return Number.isNaN(time.getTime()) ? value : time.toLocaleString('zh-CN', { hour12: false });
+}
+
+function recordIdentityText(record) {
+    const parts = [];
+    if (record.studentName) parts.push(record.studentName);
+    if (record.studentId) parts.push('学号 ' + record.studentId);
+    if (record.className) parts.push(record.className);
+    return parts.length ? parts.join(' · ') : '未提取学生身份';
+}
+
+async function loadGradingRecords() {
+    const list = document.getElementById('gradingRecordList');
+    list.innerHTML = '<div class="record-empty">正在加载批改记录...</div>';
+    try {
+        const response = await fetch('/api/grading/records?limit=30');
+        if (!response.ok) throw new Error(await readErrorResponse(response));
+        const records = await response.json();
+        if (!records.length) {
+            list.innerHTML = '<div class="record-empty">还没有批改记录。完成一次批改后会自动保存。</div>';
+            return;
+        }
+        list.innerHTML = records.map(record => `
+            <article class="record-card">
+                <div class="record-card-head">
+                    <div class="record-file" title="${escapeHtml(record.fileName)}">${escapeHtml(record.fileName)}</div>
+                    <div class="record-score">${record.totalScore}/${record.maxTotalScore}</div>
+                </div>
+                <div class="record-meta">${record.domain === 'database' ? '数据库' : 'Java/通用'} · ${escapeHtml(formatRecordTime(record.createdAt))}</div>
+                <div class="record-meta">${escapeHtml(recordIdentityText(record))} · ${escapeHtml(record.questionCount || 0)} 题</div>
+                <span class="record-status ${reviewStatusClass(record.reviewStatus)}">${escapeHtml(reviewStatusLabel(record.reviewStatus))}</span>
+                ${record.reviewNote ? `<div class="record-note">${escapeHtml(record.reviewNote)}</div>` : ''}
+                <div class="record-actions">
+                    <button class="record-action" type="button" data-record-view="${escapeHtml(record.id)}">查看详情</button>
+                    <button class="record-action" type="button" data-record-review="${escapeHtml(record.id)}" data-review-status="APPROVED">确认结果</button>
+                    <button class="record-action" type="button" data-record-review="${escapeHtml(record.id)}" data-review-status="NEEDS_REVISION">标记调整</button>
+                </div>
+            </article>`).join('');
+        list.querySelectorAll('[data-record-view]').forEach(button => {
+            button.addEventListener('click', () => viewGradingRecord(button.dataset.recordView));
+        });
+        list.querySelectorAll('[data-record-review]').forEach(button => {
+            button.addEventListener('click', () => reviewGradingRecord(
+                button.dataset.recordReview, button.dataset.reviewStatus));
+        });
+    } catch (error) {
+        list.innerHTML = `<div class="record-empty">记录加载失败：${escapeHtml(error.message)}</div>`;
+    }
+}
+
+async function viewGradingRecord(id) {
+    try {
+        const response = await fetch('/api/grading/records/' + encodeURIComponent(id));
+        if (!response.ok) throw new Error(await readErrorResponse(response));
+        const record = await response.json();
+        document.getElementById('recordDialogTitle').textContent = record.fileName || '批改详情';
+        document.getElementById('recordDialogSubtitle').textContent =
+            `${record.domain === 'database' ? '数据库作业' : 'Java/通用作业'} · ${formatRecordTime(record.createdAt)}`;
+        const questions = record.result && Array.isArray(record.result.questions)
+            ? record.result.questions : [];
+        const questionHtml = questions.length ? questions.map(question => `
+            <section class="record-question">
+                <div class="record-question-head">
+                    <span>第 ${escapeHtml(question.index)} 题 · ${escapeHtml(question.title || '')}</span>
+                    <span>${escapeHtml(question.score)}/${escapeHtml(question.maxScore)}</span>
+                </div>
+                <div class="record-report">${escapeHtml(question.report || '暂无文字评语')}</div>
+                <div class="record-actions">
+                    <button class="record-action" type="button" data-question-view="${escapeHtml(question.index)}">单独查看本题</button>
+                </div>
+            </section>`).join('') : '<div class="record-empty">该记录没有逐题明细。</div>';
+        document.getElementById('recordDialogBody').innerHTML = `
+            <div class="record-detail-summary">
+                <strong>总分 ${record.totalScore}/${record.maxTotalScore}</strong>
+                <span>${escapeHtml(reviewStatusLabel(record.reviewStatus))}</span>
+                <span>${escapeHtml(recordIdentityText(record))}</span>
+                ${record.assignmentNo ? `<span>作业号：${escapeHtml(record.assignmentNo)}</span>` : ''}
+                <span>记录ID：${escapeHtml(record.id)}</span>
+                <span>提交人：${escapeHtml(record.createdBy || 'local-teacher')}</span>
+                ${record.reviewedBy ? `<span>审核人：${escapeHtml(record.reviewedBy)}</span>` : ''}
+            </div>
+            ${record.reviewNote ? `<div class="record-note">审核意见：${escapeHtml(record.reviewNote)}</div>` : ''}
+            ${questionHtml}`;
+        document.getElementById('recordDialogBody').querySelectorAll('[data-question-view]').forEach(button => {
+            button.addEventListener('click', () => viewGradingQuestion(record.id, Number(button.dataset.questionView)));
+        });
+        showRecordDetailDialog();
+    } catch (error) {
+        alert('读取批改详情失败：' + error.message);
+    }
+}
+
+let pendingReviewRecordId = null;
+let pendingReviewStatus = null;
+let reopenGradingSearchAfterReview = false;
+
+function reviewGradingRecord(id, status) {
+    const searchDialog = document.getElementById('gradingSearchDialog');
+    if (searchDialog.open) {
+        searchDialog.close();
+        reopenGradingSearchAfterReview = true;
+    }
+    pendingReviewRecordId = id;
+    pendingReviewStatus = status;
+    const needsRevision = status === 'NEEDS_REVISION';
+    document.getElementById('gradingReviewTitle').textContent =
+        needsRevision ? '标记为需调整' : '确认批改结果';
+    document.getElementById('gradingReviewHint').textContent = needsRevision
+        ? '请说明需要调整的题目或评分原因，审核意见为必填。'
+        : '确认后记录会标记为“已确认”，审核意见可留空。';
+    const note = document.getElementById('gradingReviewNote');
+    note.value = '';
+    note.required = needsRevision;
+    const dialog = document.getElementById('gradingReviewDialog');
+    if (typeof dialog.showModal === 'function') dialog.showModal();
+    else dialog.setAttribute('open', '');
+    setTimeout(() => note.focus(), 0);
+}
+
+document.getElementById('gradingReviewDialog').addEventListener('close', () => {
+    if (!reopenGradingSearchAfterReview) return;
+    reopenGradingSearchAfterReview = false;
+    const searchDialog = document.getElementById('gradingSearchDialog');
+    if (typeof searchDialog.showModal === 'function') searchDialog.showModal();
+    else searchDialog.setAttribute('open', '');
+});
+
+async function submitGradingReview(event) {
+    event.preventDefault();
+    const note = document.getElementById('gradingReviewNote').value.trim();
+    if (pendingReviewStatus === 'NEEDS_REVISION' && !note) {
+        alert('标记为“需调整”时请填写原因');
+        return;
+    }
+    const submit = document.getElementById('gradingReviewSubmit');
+    submit.disabled = true;
+    submit.textContent = '保存中...';
+    try {
+        const response = await fetch('/api/grading/records/' + encodeURIComponent(pendingReviewRecordId) + '/review', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: pendingReviewStatus, note })
+        });
+        if (!response.ok) throw new Error(await readErrorResponse(response));
+        document.getElementById('gradingReviewDialog').close();
+        await loadGradingRecords();
+        if (document.getElementById('gradingSearchDialog').open) {
+            await searchGradingDatabase(null, false);
+        }
+    } catch (error) {
+        alert('保存审核结果失败：' + error.message);
+    } finally {
+        submit.disabled = false;
+        submit.textContent = '保存审核';
+    }
+}
+
+async function exportGradingRecords() {
+    try {
+        const response = await fetch('/api/grading/records/export.csv');
+        if (!response.ok) throw new Error(await readErrorResponse(response));
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `批改记录-${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        alert('导出失败：' + error.message);
+    }
+}
+
+const gradingSearchState = { offset: 0, limit: 12, total: 0, mode: 'records' };
+let reopenGradingSearchAfterDetail = false;
+
+function showRecordDetailDialog() {
+    const searchDialog = document.getElementById('gradingSearchDialog');
+    if (searchDialog.open) {
+        searchDialog.close();
+        reopenGradingSearchAfterDetail = true;
+    }
+    const dialog = document.getElementById('gradingRecordDialog');
+    if (dialog.open) return;
+    if (typeof dialog.showModal === 'function') dialog.showModal();
+    else dialog.setAttribute('open', '');
+}
+
+document.getElementById('gradingRecordDialog').addEventListener('close', () => {
+    if (!reopenGradingSearchAfterDetail) return;
+    reopenGradingSearchAfterDetail = false;
+    const searchDialog = document.getElementById('gradingSearchDialog');
+    if (typeof searchDialog.showModal === 'function') searchDialog.showModal();
+    else searchDialog.setAttribute('open', '');
+});
+
+async function openGradingSearch() {
+    const dialog = document.getElementById('gradingSearchDialog');
+    if (typeof dialog.showModal === 'function') dialog.showModal();
+    else dialog.setAttribute('open', '');
+    await Promise.all([loadGradingStorageStats(), searchGradingDatabase(null, true)]);
+}
+
+async function loadGradingStorageStats() {
+    const target = document.getElementById('gradingStorageSummary');
+    try {
+        const response = await fetch('/api/grading/storage');
+        if (!response.ok) throw new Error(await readErrorResponse(response));
+        const stats = await response.json();
+        const details = [`${stats.recordCount} 份记录`, `${stats.questionCount} 道题`];
+        if (stats.fileSizeBytes > 0) {
+            details.push(stats.fileSizeBytes >= 1024 * 1024
+                ? (stats.fileSizeBytes / 1024 / 1024).toFixed(2) + ' MB'
+                : Math.max(1, Math.round(stats.fileSizeBytes / 1024)) + ' KB');
+        }
+        if (stats.fileName) details.push('数据库 ' + stats.fileName);
+        target.innerHTML = `<strong>${escapeHtml(stats.engine || 'MySQL')}</strong><span>${escapeHtml(details.join(' · '))}</span>`;
+    } catch (error) {
+        target.textContent = '数据库状态读取失败：' + error.message;
+    }
+}
+
+async function searchGradingDatabase(event, resetOffset) {
+    if (event) event.preventDefault();
+    if (resetOffset) gradingSearchState.offset = 0;
+    const form = document.getElementById('gradingSearchForm');
+    const values = new FormData(form);
+    gradingSearchState.mode = values.get('mode') === 'questions' ? 'questions' : 'records';
+    const parameters = new URLSearchParams();
+    for (const [name, raw] of values.entries()) {
+        const value = String(raw || '').trim();
+        if (name !== 'mode' && value) parameters.set(name, value);
+    }
+    parameters.set('limit', String(gradingSearchState.limit));
+    parameters.set('offset', String(gradingSearchState.offset));
+    const endpoint = gradingSearchState.mode === 'questions'
+        ? '/api/grading/questions/search' : '/api/grading/records/search';
+    const submit = document.getElementById('gradingSearchSubmit');
+    const results = document.getElementById('gradingSearchResults');
+    submit.disabled = true;
+    submit.textContent = '查询中...';
+    results.innerHTML = '<div class="record-empty">正在查询数据库...</div>';
+    try {
+        const response = await fetch(endpoint + '?' + parameters.toString());
+        if (!response.ok) throw new Error(await readErrorResponse(response));
+        const page = await response.json();
+        gradingSearchState.total = Number(page.total) || 0;
+        gradingSearchState.offset = Number(page.offset) || 0;
+        if (gradingSearchState.mode === 'questions') renderQuestionSearchResults(page.items || []);
+        else renderRecordSearchResults(page.items || []);
+        updateGradingSearchPagination((page.items || []).length);
+    } catch (error) {
+        gradingSearchState.total = 0;
+        results.innerHTML = `<div class="record-empty">查询失败：${escapeHtml(error.message)}</div>`;
+        updateGradingSearchPagination(0);
+    } finally {
+        submit.disabled = false;
+        submit.textContent = '查询数据库';
+    }
+}
+
+function renderRecordSearchResults(records) {
+    const target = document.getElementById('gradingSearchResults');
+    if (!records.length) {
+        target.innerHTML = '<div class="record-empty">没有符合条件的整份批改记录。</div>';
+        return;
+    }
+    target.innerHTML = records.map(record => `
+        <article class="search-result-card">
+            <div class="search-result-head">
+                <div>
+                    <div class="search-result-title">${escapeHtml(record.fileName)}</div>
+                    <div class="search-result-identity">${escapeHtml(recordIdentityText(record))}</div>
+                </div>
+                <div class="search-result-score">${escapeHtml(record.totalScore)}/${escapeHtml(record.maxTotalScore)}</div>
+            </div>
+            <div class="record-meta">${record.domain === 'database' ? '数据库' : 'Java/通用'} · ${escapeHtml(record.questionCount || 0)} 题 · ${escapeHtml(formatRecordTime(record.createdAt))} · ID ${escapeHtml(record.id)}</div>
+            <span class="record-status ${reviewStatusClass(record.reviewStatus)}">${escapeHtml(reviewStatusLabel(record.reviewStatus))}</span>
+            ${record.reviewNote ? `<div class="record-note">${escapeHtml(record.reviewNote)}</div>` : ''}
+            <div class="record-actions">
+                <button class="record-action" type="button" data-search-record="${escapeHtml(record.id)}">查看整份记录</button>
+                <button class="record-action" type="button" data-search-review="${escapeHtml(record.id)}" data-review-status="APPROVED">确认结果</button>
+                <button class="record-action" type="button" data-search-review="${escapeHtml(record.id)}" data-review-status="NEEDS_REVISION">标记调整</button>
+            </div>
+        </article>`).join('');
+    bindGradingSearchActions(target);
+}
+
+function renderQuestionSearchResults(questions) {
+    const target = document.getElementById('gradingSearchResults');
+    if (!questions.length) {
+        target.innerHTML = '<div class="record-empty">没有符合条件的逐题批改明细。</div>';
+        return;
+    }
+    target.innerHTML = questions.map(question => `
+        <article class="search-result-card">
+            <div class="search-result-head">
+                <div>
+                    <div class="search-result-title">${escapeHtml(recordIdentityText(question))} · 第 ${escapeHtml(question.questionIndex)} 题</div>
+                    <div class="search-result-identity">${escapeHtml(question.title || '未命名题目')} · ${escapeHtml(question.fileName)}</div>
+                </div>
+                <div class="search-result-score">${escapeHtml(question.score)}/${escapeHtml(question.maxScore)}</div>
+            </div>
+            <div class="record-meta">整份 ${escapeHtml(question.totalScore)}/${escapeHtml(question.maxTotalScore)} · ${question.domain === 'database' ? '数据库' : 'Java/通用'} · ${escapeHtml(formatRecordTime(question.createdAt))} · ID ${escapeHtml(question.recordId)}</div>
+            ${question.studentAnswerSnippet ? `<div class="search-result-snippet"><strong>学生答案：</strong>${escapeHtml(question.studentAnswerSnippet)}</div>` : ''}
+            ${question.reportSnippet ? `<div class="search-result-snippet"><strong>批改评语：</strong>${escapeHtml(question.reportSnippet)}</div>` : ''}
+            <div class="record-actions">
+                <button class="record-action" type="button" data-search-question-record="${escapeHtml(question.recordId)}" data-search-question-index="${escapeHtml(question.questionIndex)}">查看本题详情</button>
+                <button class="record-action" type="button" data-search-record="${escapeHtml(question.recordId)}">查看整份记录</button>
+            </div>
+        </article>`).join('');
+    bindGradingSearchActions(target);
+}
+
+function bindGradingSearchActions(container) {
+    container.querySelectorAll('[data-search-record]').forEach(button => {
+        button.addEventListener('click', () => viewGradingRecord(button.dataset.searchRecord));
+    });
+    container.querySelectorAll('[data-search-question-record]').forEach(button => {
+        button.addEventListener('click', () => viewGradingQuestion(
+            button.dataset.searchQuestionRecord, Number(button.dataset.searchQuestionIndex)));
+    });
+    container.querySelectorAll('[data-search-review]').forEach(button => {
+        button.addEventListener('click', () => reviewGradingRecord(
+            button.dataset.searchReview, button.dataset.reviewStatus));
+    });
+}
+
+async function viewGradingQuestion(recordId, questionIndex) {
+    try {
+        const response = await fetch('/api/grading/records/' + encodeURIComponent(recordId)
+            + '/questions/' + encodeURIComponent(questionIndex));
+        if (!response.ok) throw new Error(await readErrorResponse(response));
+        const detail = await response.json();
+        document.getElementById('recordDialogTitle').textContent =
+            `${detail.studentName || detail.fileName} · 第 ${detail.questionIndex} 题`;
+        document.getElementById('recordDialogSubtitle').textContent =
+            `${detail.domain === 'database' ? '数据库作业' : 'Java/通用作业'} · ${formatRecordTime(detail.createdAt)}`;
+        document.getElementById('recordDialogBody').innerHTML = `
+            <div class="record-detail-summary">
+                <strong>本题 ${escapeHtml(detail.score)}/${escapeHtml(detail.maxScore)}</strong>
+                <span>整份 ${escapeHtml(detail.totalScore)}/${escapeHtml(detail.maxTotalScore)}</span>
+                <span>${escapeHtml(recordIdentityText(detail))}</span>
+                <span>${escapeHtml(reviewStatusLabel(detail.reviewStatus))}</span>
+                <span>记录ID：${escapeHtml(detail.recordId)}</span>
+            </div>
+            <section class="record-question">
+                <div class="record-question-head"><span>第 ${escapeHtml(detail.questionIndex)} 题 · ${escapeHtml(detail.title || '')}</span><span>${escapeHtml(detail.questionType || '')}</span></div>
+                <div class="record-meta">评分路径：${escapeHtml(detail.gradingMethod || '未记录')}</div>
+                <div class="record-answer-block"><strong>学生答案</strong><pre>${escapeHtml(detail.studentAnswer || '未作答')}</pre></div>
+                <div class="record-answer-block"><strong>标准答案 / 关键得分点</strong><pre>${escapeHtml(detail.correctAnswer || '未单独记录')}</pre></div>
+                <div class="record-answer-block"><strong>批改报告</strong><div class="md-content">${renderMarkdown(detail.report || '暂无文字评语')}</div></div>
+                <div class="record-actions"><button id="questionToFullRecord" class="record-action" type="button">查看整份记录</button></div>
+            </section>`;
+        document.getElementById('questionToFullRecord').addEventListener('click', () => viewGradingRecord(recordId));
+        showRecordDetailDialog();
+    } catch (error) {
+        alert('读取逐题详情失败：' + error.message);
+    }
+}
+
+function updateGradingSearchPagination(itemCount) {
+    const total = gradingSearchState.total;
+    const start = total ? gradingSearchState.offset + 1 : 0;
+    const end = gradingSearchState.offset + itemCount;
+    const page = Math.floor(gradingSearchState.offset / gradingSearchState.limit) + 1;
+    const pages = Math.max(1, Math.ceil(total / gradingSearchState.limit));
+    document.getElementById('gradingSearchResultCount').textContent =
+        `${gradingSearchState.mode === 'questions' ? '逐题明细' : '整份记录'}：共 ${total} 条`;
+    document.getElementById('gradingSearchRange').textContent = total ? `当前 ${start}–${end}` : '';
+    document.getElementById('gradingSearchPage').textContent = `第 ${page} / ${pages} 页`;
+    document.getElementById('gradingSearchPrevious').disabled = gradingSearchState.offset <= 0;
+    document.getElementById('gradingSearchNext').disabled = end >= total;
+}
+
+function pageGradingSearch(direction) {
+    const next = gradingSearchState.offset + direction * gradingSearchState.limit;
+    if (next < 0 || next >= gradingSearchState.total) return;
+    gradingSearchState.offset = next;
+    searchGradingDatabase(null, false);
+}
+
+function resetGradingSearch() {
+    document.getElementById('gradingSearchForm').reset();
+    gradingSearchState.offset = 0;
+    searchGradingDatabase(null, true);
+}
+
+function closeRecordDialogFromBackdrop(event) {
+    if (event.target === event.currentTarget) event.currentTarget.close();
 }
 
 // ================================================================
@@ -1225,19 +3105,19 @@ function renderDatabaseSources(allSources) {
 function toggleContext() {
     const checked = document.getElementById('showContext').checked;
     document.getElementById('hwSourcesArea').style.display = checked ? 'block' : 'none';
-    document.getElementById('dbHwSourcesArea').style.display = checked ? 'block' : 'none';
 }
 
 async function loadJavaStats() {
     try {
         const res = await fetch('/api/knowledge/stats');
+        if (!res.ok) throw new Error(await readErrorResponse(res));
         const d = await res.json();
         if (d.chunkCount > 0 || d.fileCount > 0) {
             document.getElementById('statsBox').style.display = 'block';
             document.getElementById('emptyHint').style.display = 'none';
             document.getElementById('chunkCount').textContent = d.chunkCount;
             document.getElementById('fileCount').textContent = d.fileCount;
-            document.getElementById('fileList').innerHTML = d.files.map(f => `<div>• ${f}</div>`).join('');
+            document.getElementById('fileList').innerHTML = d.files.map(f => `<div>• ${escapeHtml(f)}</div>`).join('');
         } else {
             document.getElementById('statsBox').style.display = 'none';
             document.getElementById('emptyHint').style.display = 'block';
@@ -1249,6 +3129,7 @@ async function loadJavaStats() {
 async function loadDatabaseStats() {
     try {
         const res = await fetch('/api/database/knowledge/stats');
+        if (!res.ok) throw new Error(await readErrorResponse(res));
         const d = await res.json();
         if (d.chunkCount > 0 || d.fileCount > 0) {
             document.getElementById('dbStatsBox').style.display = 'block';
@@ -1268,23 +3149,39 @@ async function loadStats() {
     await Promise.all([loadJavaStats(), loadDatabaseStats()]);
 }
 
-async function syncKnowledge() {
-    const btn = event.target;
+async function syncKnowledge(btn) {
     btn.disabled = true; btn.textContent = '同步中...';
-    try { await fetch('/api/knowledge/sync', { method: 'POST' }); btn.textContent = '同步完成'; await loadJavaStats(); }
-    catch(e) { btn.textContent = '同步失败'; }
+    try {
+        const response = await fetch('/api/knowledge/sync', { method: 'POST' });
+        if (!response.ok) throw new Error(await readErrorResponse(response));
+        btn.textContent = '同步完成';
+        await loadJavaStats();
+    } catch(e) {
+        btn.textContent = '同步失败';
+        alert('Java 知识库同步失败：' + e.message);
+    }
     finally { setTimeout(() => { btn.disabled = false; btn.textContent = '同步 Java 知识库'; }, 2000); }
 }
 
-async function syncDatabaseKnowledge() {
-    const btn = event.target;
+async function syncDatabaseKnowledge(btn) {
     btn.disabled = true; btn.textContent = '同步中...';
-    try { await fetch('/api/database/knowledge/sync', { method: 'POST' }); btn.textContent = '同步完成'; await loadDatabaseStats(); }
-    catch(e) { btn.textContent = '同步失败'; }
+    try {
+        const response = await fetch('/api/database/knowledge/sync', { method: 'POST' });
+        if (!response.ok) throw new Error(await readErrorResponse(response));
+        btn.textContent = '同步完成';
+        await loadDatabaseStats();
+    } catch(e) {
+        btn.textContent = '同步失败';
+        alert('数据库知识库同步失败：' + e.message);
+    }
     finally { setTimeout(() => { btn.disabled = false; btn.textContent = '同步数据库知识库'; }, 2000); }
 }
 
+setBatchStudentFiles([]);
+updateSingleHomeworkMode();
+loadAnswerKeys();
 loadStats();
+loadGradingRecords();
 </script>
 </body>
 </html>

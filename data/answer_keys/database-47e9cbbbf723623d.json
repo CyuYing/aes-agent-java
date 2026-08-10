@@ -1,0 +1,80 @@
+{
+  "id" : "database-47e9cbbbf723623d",
+  "name" : "DB-作业",
+  "courseType" : "database",
+  "sourceFileName" : "DB-作业参考答案与评分标准.docx",
+  "sha256" : "47e9cbbbf723623dd9103e9d30aba1fd2f2adca2e393927109b9defbae7e96ac",
+  "createdAt" : "2026-07-22T08:31:04.933942100Z",
+  "maxScore" : 100,
+  "questions" : [ {
+    "index" : 1,
+    "title" : "【第1题】 名词解释",
+    "description" : "（1）关系（2）属性\n{本题：10分，每个名称5分。根据规范程度和完整度给分}",
+    "referenceAnswer" : "（1）关系：在域D1,D2,…,Dn上笛卡尔积D1×D2×…×Dn的子集称为关系，表示为R(D1,D2,…,Dn)。\n（2）属性：关系二维表中对每个列取个名字以便于区别，称为属性。",
+    "questionType" : "subjective",
+    "maxScore" : 10,
+    "scoreInferred" : false,
+    "rubric" : "本题：10分，每个名称5分。根据规范程度和完整度给分",
+    "referenceImages" : [ ]
+  }, {
+    "index" : 2,
+    "title" : "【第2题】 设属性集U={XYZW}，函数依赖集F={X→Y，Y→Z，W→Y}，计算属性集闭包X+，(XW)+和(YW)+。",
+    "description" : "{本题：30分，每个闭包计算10分，要求给出简要过程}",
+    "referenceAnswer" : "求X+：令S={X}，S(0)=X；由于X→Y，S(1)=XY；由于Y→Z，S(2)=XYZ，故X+=XYZ。\n求(XW)+：令S={XW}，S(0)=XW；由于X→Y，S(1)=XYW；由于Y→Z，S(2)=XYZW，故(XW)+=XYZW。\n求(YW)+：令S={YW}，S(0)=YW；由于Y→Z，S(1)=YZW；故(YW)+=YZW。",
+    "questionType" : "subjective",
+    "maxScore" : 30,
+    "scoreInferred" : false,
+    "rubric" : "本题：30分，每个闭包计算10分，要求给出简要过程",
+    "referenceImages" : [ ]
+  }, {
+    "index" : 3,
+    "title" : "【第3题】 综合题：一个公司的人事数据库包含以下关系模式：",
+    "description" : "职工—Employee (Eid, name, sex, age) //属性是职工编码，姓名，性别，年龄\n该数据库包含的具体元组信息如下：\nEmployee\nEid\nEname\nsex\nage\nE1\n张三\n男\n36\nE2\n李四\n男\n32\nE3\n王五\n女\n28\nE4\n赵六\n女\n25\n（1）找出工资少于7000的所有职工姓名，给出具体结果。\n（2）找出不在销售部的职工代码，给出具体结果。\n{本题：30分，每个小题15分。等价的表达也给分；每个小题的查询结果占6分}",
+    "referenceAnswer" : "（1）\n\nEname ( Employee\n\npay<7000(Job) )\n查询结果：\n李四\n王五\n\n（2）\n\nEid  (Job)─\n\nEid ( Job\n\nDid (\n\nDname=’销售部’(Department) )\n查询结果：\nE1\nE2",
+    "questionType" : "subjective",
+    "maxScore" : 30,
+    "scoreInferred" : false,
+    "rubric" : "本题：30分，每个小题15分。等价的表达也给分；每个小题的查询结果占6分",
+    "referenceImages" : [ {
+      "id" : "ref-q3-img1",
+      "fileName" : "image1.png",
+      "mediaType" : "image/png",
+      "dataBase64" : "iVBORw0KGgoAAAANSUhEUgAAACYAAAAwCAIAAADy0J9/AAAAAXNSR0IArs4c6QAAAAlwSFlzAAAOxQAADsQBXnfdvgAAAIBJREFUWEftmEEKgDAMBI3//3MsCgpCFLs0ATu5N0um0x5i7r7k1pobt6dlTtmyWhVMWRBpEVgzO675K/nXgwVTEjnoyQIWsAIB9BHgPR0FLGAFAugjwONdog/6CATQR4DH74M+/9HnWk+ca4XbcN3riajPHPqEe59B7rS2c4DdAKryIUa/ZJueAAAAAElFTkSuQmCC",
+      "role" : "reference"
+    }, {
+      "id" : "ref-q3-img2",
+      "fileName" : "image2.png",
+      "mediaType" : "image/png",
+      "dataBase64" : "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",
+      "role" : "reference"
+    }, {
+      "id" : "ref-q3-img3",
+      "fileName" : "image3.png",
+      "mediaType" : "image/png",
+      "dataBase64" : "iVBORw0KGgoAAAANSUhEUgAAAB8AAAAhCAIAAACuvOezAAAAAXNSR0IArs4c6QAAAAlwSFlzAAAOxAAADsQBlSsOGwAAAU1JREFUSEvtlrsRgzAMhu3MAik4JmCDJE2qjEDWoWYKKtiACTiKkF0c3pZBsgW5FNzFtfRJ/i1Lkkop8bNz+hm5Ax+ZLlrdiZPH21WLkgbScGWKp5Tymg506LE14ipxDVgkMltaQixcTGWaJJrUiHNaM6V0AKsdpLuzBgHBBegAms4yB3hwT0HxJzpgU3JbXkgQ/JEOH8quOIzh9BroTjPGl8CS6uu9yMbS7qo78PmfyA/mGhNpVqwcV78pPHt8umFZvd5Lz47+flU7gd45tHoepkcimna5u+5HX96l6XfKNHU5h8aKrafDwkJenszdSB0rtp7u3R5z3ZZ1wy4gmHp8vyB+wy/ktKT9fWYPntE+dndgeFuyq+LTg2zYkzosdruHGWoyJx/7lVYbh3NEAbRzzqD7jDH0Qd9m6qHloLcliDIq2Zmxpsv/Dkw0jw9Tp2h+xcWslQAAAABJRU5ErkJggg==",
+      "role" : "reference"
+    } ]
+  }, {
+    "index" : 4,
+    "title" : "【第4题】 综合题：对于零件供应商数据库，完成SQL查询语句并给出查询结果。",
+    "description" : "（1）求供应工程J1零件的供应商号码SNO;\n（2）求供应工程J1零件P1的供应商号码SNO;\n{本题：30分，每个小题15分，等价的表达也给分；每个小题的结果截图占6分}",
+    "referenceAnswer" : "（1）SELECT SNO FROM SPJ WHERE JNO = 'J1';\n\n（2）SELECT SNO FROM SPJ WHERE JNO = 'J1' AND PNO = 'P1';",
+    "questionType" : "subjective",
+    "maxScore" : 30,
+    "scoreInferred" : false,
+    "rubric" : "本题：30分，每个小题15分，等价的表达也给分；每个小题的结果截图占6分",
+    "referenceImages" : [ {
+      "id" : "ref-q4-img1",
+      "fileName" : "image4.png",
+      "mediaType" : "image/png",
+      "dataBase64" : "iVBORw0KGgoAAAANSUhEUgAAAEUAAACuCAIAAADvbFc/AAAAAXNSR0IArs4c6QAAAAlwSFlzAAAOwwAADsMBx2+oZAAABEZJREFUeF7tnUtyHDEIhu0sU3MuHzoHyzodY1M9eiDpFwiNTNcs4o5a4gNEg5iy3x+Px9tB1687y+8/r0EmyPnE8xo0opSn8bxf+6dovr8fb/n96+Z17XP/EoZE4us/D/9wCZr8954eKMh5mr+dxvPkb3t615BUp9kneIbMv3xw5DvLVT604Gn7B8wPkpSHkyNOL3hAkiKp5B/K+QFNxx/yh6LcfJMHW5ck5v6W6LKY5g7tEHmwAs/dhazFbZIjPO5CC1QID+2Wy5H6C6emXrUGgDyEtKGhcB4Oa9Yha8h0CE8TwNFuCM+QwhI265IeyQ/y5OB+SHJPEWrpwpBG8sGCUhCeSWnmH1fOd+YFspshzg/sdKsxs3l80xByYI7gGVCWw9A4D3FQ+sCSp+2f6P8MGN9q6A/Kd07cP1Zu4THvafYJHg8v6l8z8p1+XXmMjP3zqXU67OVPYonmAZ2d5RD7FPs/JGLtUNsOIJkZ4RGEo0Ntx0uBxxdAwT6Ox9NNy4P2Efo/zSVNB4A8l0zR/zE1zNfkiH0cXy9NlSA8zUkdByD9kmL/h9+ndxijUB79H0ePmVv6tP0TPHP+YP00Et+oLijGsft9o+BGq9cmR/ytVv8k911euwiPtc/MzK/AY+dXABjCU6t/dgBDeKhYkI8KrL+nUzMdyCPXP14wl1Q4D2ko9z1HGJBHCMS+MCBPzXcTGJf3D5If9CQH7I1AzG0+EvVPU0W7DpiNb7txBc9uFnmWB4lvUf+ss2nsn0zXO5QJLBRin6h/XmH/CP0fxywb8bfkpCpJTx1hwHoh6p91+wfJD6L+UbaP8nmvsnSq083GN1VhFCYLHgUlGk6BxLeofwwNkkwd+6de/+xQCCH26fn+m1dWivBwW6GYmFJfyMtWIA8hFQ3l+704nIdP3ItW6vFJi6iH8NTqH5cGyeHxGskPOr//ZhcSov9jsVWXzInEgyWCgYsED6i4RY8h8S3qn0XGAc9H10k3vpJCPOD3pt0LtJ8L4enJNb1KBoQn6p9+f5kdCdqHlxV6jy7lA8IT9c+sF/U/j+QHUf/067drZPR/utS04yAkvu3I8S1T8Hxqgg51+ZNbzOVlCtYLFF74sw8MyHP4/knKHq9KgbSMxAOh/vGFAXnk+sfXGxH7kMR5n8fdOLh9avXPPYLTvxdfiH1qUiZBnH5cfCE8i0UcWk65/qHU4X5ZmCj6P0M23mnwafsneHbyrlwWJL7Vglj+XrIIbrT6it9/wEmQUBpZWzf2T6ZhI6fCLInYR65/XNJQhkd4hPqHd876zJqQQJ5i/XN3vJ4eHuZR8lM4D83rJXeNCuH5if0fr9obyQ96+j+mQTzqH4vQs2TO+Ps/S9QML4LEa3ixBQ8GzwIlTyzxZB+vJHJUfkHO8LdRZa4dH3//Z62+i6spn+9sQFQV4bR4EPnbzt42cx6yJ9dp+yd49vSzb6n+ATZYAx1LLBRDAAAAAElFTkSuQmCC",
+      "role" : "reference"
+    }, {
+      "id" : "ref-q4-img2",
+      "fileName" : "image5.png",
+      "mediaType" : "image/png",
+      "dataBase64" : "iVBORw0KGgoAAAANSUhEUgAAAEYAAABeCAIAAAARyfUlAAAAAXNSR0IArs4c6QAAAAlwSFlzAAAOxAAADsQBlSsOGwAAAm9JREFUeF7tWktSBCEMdVx6Ai/iFbyYK6/kRbyI5VqqMkUhv3S/Tggw6ZpN90DIywshAW6vH98/n29PGz3PG2G5Q8khvXytgbGj5wOwtAZHXS1vFB6qPP6+P5Xfw8fwzPM9KEMqxecOKb4HXbMWc/LW0dPn0pyU/dcqZ2kJryvnTwrKHW9Fx1tBZ0ZHT4hWINHDQ8JSWL/TH2VJaaIU/6VO2ase3yBLlI/EH+mXpX/0Gj/Gxtr1CwjplI2zfKyaDZ8S2G8sAynNObQ1ZsGDkMz17gADIdEkyeJBHMYWMA6JUNlqX+XqEqQY6LSDGDt/BDJxFoMhewIssSbM4GnvBeCQ0tQhXWQjgWVkpy7aVaZvp7BONkED33uYgARWBTw8sKKtGjgkK8ufGde3U85Yy6rthnPJz5esnKkY18+XpqECU8RzPMxuY3ttGMQfABK7TzLWiZqj+YWbSYhA1cDnUnm+lOpg6MAgpOr5EkFqbZSjRj/dD4TUGYc2yg0fGUi2GDLzgZAMt7xZ/kFIQW7nfIkdVbUBDolQTUjXJUhk7NlQgZAMlx3WaUFIrFzDBjik8nwpW2qt1lw/XzL0p8ND4453eIjRDR3SaIsj4+Esteql7JIeotS1PiCkVr2UfTdZkUFI1+yo21sGUqyXZiicQEhHUtUBF1GqdIOQ+vXSmIs1LffFIXXqJds66hKkfr10xDk1AgUIqRWdTaK2zHaKhnWlZIIsheGr9VLcYzGMEF4vSTmHphw/q9W0rpRsPDxIaSAuxyGJm1RBoN/HUzCquMgN55LfxxP3ElSg38dDLTdJP8/xJiGiq8aGQdwhreB4f2T8EeZzE16kAAAAAElFTkSuQmCC",
+      "role" : "reference"
+    } ]
+  } ]
+}
