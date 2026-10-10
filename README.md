@@ -1,62 +1,211 @@
-# Java 与数据库作业智能批改系统
+# AES Agent · Java 与数据库作业智能批改系统
 
-基于 **LangChain4j + Spring Boot + RAG** 的智能化作业批改系统。支持上传 Word 作业文档，逐题提取 Java 编程题、选择题、主观题、图片作答题或数据库 SQL 题，再按题型使用确定性答案对比或大语言模型进行批改。
+> 把 Word 作业转换为可追溯的评分报告：从题目识别、参考答案匹配到 RAG 评分、SQL 执行证据与教师复核。
 
-当前版本：**v1.1.0**。Windows 用户可从 [GitHub Releases](https://github.com/CyuYing/aes-agent-java/releases/latest) 下载 `AES-Agent-Windows.zip`，完整解压后双击 `start.cmd`；软件已内置 Java 运行时、MySQL 8、答案库与演示作业。
+[源码](https://github.com/CyuYing/aes-agent-java) · [下载 Windows 便携版](https://github.com/CyuYing/aes-agent-java/releases/tag/v1.1.0) · [快速开始](#快速开始) · [架构设计](#架构设计) · [完整使用与部署手册](#完整使用与部署手册)
 
----
+## 项目介绍
 
-## 一、系统简介
+AES Agent 面向 Java 与数据库课程的作业批改场景。教师上传 DOCX 作业和参考答案后，系统提取题目、作答及图片，按题型选择确定性答案对比或大模型评分，并保留评分依据，方便核对与复盘。
 
-本系统面向 Java 程序设计与数据库课程的教学辅助场景，帮助教师快速批改学生提交的作业文档。系统通过 RAG（检索增强生成）技术，自动从独立知识库中检索对应评分标准，结合大语言模型对每道题进行多维度评分。
+项目采用 **Java 17 + Spring Boot + LangChain4j**，提供浏览器界面、REST API 和 SSE 进度反馈。支持答案库批量批改、Java 单份批改、数据库 SQL 单份批改，以及批改历史查询、教师复核和 CSV 导出。
 
-### v1.1.0 更新
+当前发布版本为 **v1.1.0**。Windows 便携包集成运行环境和 MySQL，适合本地体验；Docker Compose 适合后续服务器部署。AI 文本与图片评估仍需配置可访问的模型服务。
 
-- 单份 Java、数据库及答案库批量流程均新增“AI 复核题目边界”可选开关，默认关闭。
-- AI 只返回原文起始行号；系统结合答案库题数、行号顺序和置信度校验，异常时自动回退本地规则。
-- 页面与 SSE 会显示 `ai-confirmed`、`ai-refined` 或 `rule-fallback`，教师可以确认实际采用的识别路径。
-- Windows 便携包、内置 Java/MySQL、演示作业、README 与 SHA-256 校验文件同步发布。
-- 使用 Java、数据库演示 DOCX 完成 38 项自动化测试，0 失败；需要外部 MySQL 环境的用例按条件跳过。
+## 技术亮点
 
-### 核心能力
+| 设计 | 实现方式 | 解决的问题 |
+| --- | --- | --- |
+| 按题型分流 | 选择题标准答案归一化比较；批量模式下完全一致的纯文本参考答案可直接判定；其余题目使用 RAG 与模型评分 | 避免把所有判分都交给模型 |
+| 规则优先的题目识别 | DOCX 段落、表格、图片解析；可选 AI 仅返回题目起始行，本地检查范围、数量与置信度，不可靠时回退规则 | 处理题号、代码编号和子问题混杂的文档 |
+| 课程知识库隔离 | BGE-small-zh 本地向量化，Java / 数据库使用不同向量集合 | 减少不同课程的评分材料混用 |
+| 可核对的评分证据 | 返回参考答案、检索来源、图片分析；SQL 单份模式附执行结果或错误 | 让教师能追查评分依据 |
+| SQL 独立沙箱 | 数据库单份批改通过独立账号访问 `aes_sql_sandbox`；限制语句数量、执行时间和返回行数，执行前后清理 | 在隔离数据库中获取真实 SQL 证据 |
+| 记录与复核闭环 | MySQL 事务保存整份记录和逐题索引；支持组合检索、审核状态与 CSV 导出 | 便于按学生、课程和题目复查 |
 
-- **答案库驱动批量批改** — 一份参考答案自动匹配多份学生作业，批量输出逐题得分、总分、排名与 CSV
-- **严格 100 分制** — 自动读取答案中的逐题分值；缺失分值自动补齐并标记，教师可手动调整但合计必须为 100
-- **逐题拆解与确认** — 从 `.docx` 的段落、表格和常见题号中提取每道题，批改前可预览并修正题型和答案
-- **可选 AI 题目边界保险** — 本地规则先拆题，教师可再启用 AI 复核顶层题目起始行；严格校验失败时自动回退，不改写学生原文
-- **选择题确定性批改** — 标准答案与学生答案按传统方式精确对比，不让大模型猜测得分
-- **逐题提示词** — 教师可为每道题分别填写评分侧重点和特殊要求
-- **图片与多模态批改** — 提取 Word 内嵌题图/学生答案图，支持上传参考答案图，先转写文字再进行参考图与学生图匹配
-- **题意符合性检查** — 判断代码是否满足题目要求，功能是否完整
-- **RAG 增强评分** — 自动检索评分标准和参考范例，评分有据可依
-- **多维度评价** — 是否符合题意（30）+ 代码规范（20）+ 逻辑正确性（20）+ 性能效率（15）+ 可维护性（15），百分制
-- **数据库作业批改** — 自动提取 SQL，在权限隔离且每题重置的 MySQL 8 沙箱中真实执行，结合执行证据评分
-- **知识库隔离** — Java 知识库与数据库知识库分别管理，避免评分标准混用
-- **流式输出 (SSE)** — 实时显示每道题的批改过程
-- **透明可解释** — 展示检索到的原始文档片段，评分依据一目了然
-- **记录数据库与教师复核闭环** — MySQL 事务持久化整份/逐题结果，可组合查询“某学生某道题”，支持确认、标记调整和导出 UTF-8 CSV
-- **安全部署** — 单机版仅监听本机；Docker 版默认启用教师登录并仅绑定 `127.0.0.1`
-- **完整离线前端** — Markdown 渲染器随 JAR 打包，不依赖外部 CDN
+这些是源码已实现的设计；本项目未提供准确率、并发吞吐量等性能基准。
 
-### 技术栈
+## 功能梳理
 
-| 组件 | 选型 | 说明 |
-|------|------|------|
-| 框架 | Spring Boot 3.5.3 | Java 17+ |
-| LLM SDK | LangChain4j 0.36.2 | OpenAI 兼容接口 |
-| LLM | Qwen / DeepSeek 等 | 通过 OpenAI 兼容接口调用；百炼 `qwen3.7-plus` 可同时处理文字与图片 |
-| Embedding | BGE-small-zh | 本地 ONNX 运行，模型随应用依赖打包，中文优化 |
-| 向量库 | Chroma / InMemory | 优先 Chroma，不可用时自动降级 |
-| 文档解析 | Apache POI + PDFBox + Tika | DOCX 逐段/表格/图片解析；知识库支持 PDF、DOCX、TXT |
-| 图片理解 | OpenAI 兼容视觉模型（可选） | 图片转写与参考答案图/学生答案图直接比对 |
-| 数据库 | MySQL 8 | 正式记录库 + 独立最低权限 SQL 作业沙箱；便携版自带 Server |
-| 前端 | HTML/CSS/JS + Marked WebJar | SSE + Fetch API；前端依赖随 JAR 离线打包 |
+| 功能入口 | 输入 | 处理与输出 |
+| --- | --- | --- |
+| 答案库管理 | 参考答案 DOCX | 提取题目、答案、评分细则与分值；保存及批改前校验总分为 100 |
+| 答案库批量批改 | 答案库 + 多份学生 DOCX | 题号优先、题干相似度兜底匹配；按学生汇总得分，SSE 逐题反馈 |
+| Java 单份批改 | DOCX + 逐题配置 | 预览题型与作答，调整标准答案、提示词、图片角色，输出逐题报告 |
+| 数据库单份批改 | 含建表 / 初始化 SQL / 学生 SQL 的 DOCX | 独立 MySQL 沙箱真实执行，结合执行证据与数据库 RAG 生成评分 |
+| 图片辅助批改 | 题图、学生图、参考图 | 可选视觉模型转写与对比，保留图片分析证据 |
+| 知识库管理 | PDF、DOC / DOCX、TXT | 递归加载、分块、向量化；分别同步 Java 与数据库评分材料 |
+| 历史与复核 | 学生 / 学号 / 班级 / 课程 / 时间等条件 | 整份与逐题查询、教师审核、CSV 导出 |
 
----
+**能力边界：** Java 代码通过模型静态分析，不执行编译或单元测试。数据库课程的**答案库批量模式**目前不调用 SQL 沙箱；真实 SQL 执行属于**数据库单份模式**。AI 输出需要教师核对。
 
-## 二、快速预览
+## 技术选型
 
----
+| 层次 | 技术 | 用途 |
+| --- | --- | --- |
+| 应用服务 | Java 17、Spring Boot 3.5.3、Spring Security | HTTP API、SSE、可选教师 Basic 认证 |
+| 模型接入 | LangChain4j 0.36.2、OpenAI 兼容模型接口 | 文本评分、可选题目边界复核与视觉分析 |
+| RAG | BGE-small-zh 本地 ONNX、Chroma / 内存向量库 | 知识材料向量化与按课程检索 |
+| 文档解析 | Apache POI、Apache PDFBox、Apache Tika | 作业结构和图片提取、知识文档读取 |
+| 数据存储 | MySQL 8 | 正式批改记录；独立库、独立账号执行 SQL 作业 |
+| 前端 | HTML / CSS / JavaScript、Marked WebJar、Fetch | 作业上传、预检、流式进度、Markdown 报告 |
+| 交付 | Docker Compose、Windows 便携打包脚本 | 本地运行与服务器迁移 |
+
+## 架构设计
+
+### 系统架构
+
+下面区分三种业务入口，以及它们共享的评分、检索和持久化服务。箭头表示调用或数据流，不表示异步队列。
+
+```mermaid
+flowchart TB
+    UI["浏览器界面 · DOCX 上传 / 预检 / 报告 / 复核"]
+    API["Spring Security + AesController · REST / SSE"]
+    UI --> API
+    subgraph APP["业务编排 · Spring Boot"]
+        BATCH["答案库批量批改<br/>AnswerKeyService + BatchGradingService"]
+        JAVA["Java 单份批改<br/>DocumentParserService"]
+        DB["数据库 SQL 单份批改<br/>DatabaseDocumentParserService"]
+        HW["HomeworkService<br/>题型分流 / 参考答案 / 图片 / 课程感知评分"]
+        DHW["DatabaseHomeworkService<br/>SQL 执行证据 + 数据库 RAG 评分"]
+        BATCH --> HW
+        JAVA --> HW
+        DB --> DHW
+    end
+    API --> BATCH
+    API --> JAVA
+    API --> DB
+    HW --> CHOICE["ChoiceGradingService<br/>选择题确定性判分"]
+    HW --> VISION["ImageDescriptionService<br/>可选图片转写与对比"]
+    HW --> RAG["KnowledgeService / DatabaseKnowledgeService<br/>课程知识检索 · BGE-small-zh"]
+    DHW --> RAG
+    DHW --> SQL["DatabaseExecutionService<br/>仅 SQL 单份入口 · 执行前后清理"]
+    SQL --> SANDBOX[("MySQL · aes_sql_sandbox<br/>独立数据库 / 独立账号")]
+    RAG --> VECTOR[("Chroma 或内存向量库<br/>Java / 数据库分集合")]
+    RAG --> LLM["LangChain4j → OpenAI 兼容文本模型"]
+    VISION --> VL["OpenAI 兼容视觉模型 · 可选"]
+    HW --> RECORD["GradingRecordService<br/>整份 + 逐题事务保存 / 查询 / 复核 / CSV"]
+    DHW --> RECORD
+    RECORD --> MYSQL[("MySQL · aes_agent<br/>正式批改记录")]
+    RECORD -. "评分结果 / 进度" .-> API
+    API -. "SSE / JSON" .-> UI
+```
+
+批量模式中的答案库保存在 `data/answer_keys/`；DOCX 结构解析和可选 AI 边界复核由 `AssignmentDocumentService` 等解析服务完成。正式记录库与 SQL 沙箱必须使用不同账号和权限。
+
+### 答案库批量批改流程
+
+```mermaid
+flowchart TD
+    A["导入参考答案 DOCX"] --> B["提取题号 / 标准答案 / 评分细则 / 逐题分值"]
+    B --> C{"总分是否为 100？"}
+    C -- 否 --> D["教师调整分值后重新校验"]
+    D --> C
+    C -- 是 --> E["上传多份学生 DOCX"]
+    E --> F["本地规则解析题目 / 学生信息 / 图片"]
+    F --> G{"启用 AI 边界复核？"}
+    G -- 否 --> I["按题号优先、题干相似度兜底匹配"]
+    G -- 是 --> H["AI 返回起始行 → 本地校验<br/>不可靠或失败则回退规则"]
+    H --> I
+    I --> J["预检匹配结果，确认后开始批改"]
+    J --> K{"每道题的评分路径"}
+    K -- "缺题 / 未作答" --> L["记录缺失原因与零分"]
+    K -- "与纯文本参考答案完全一致" --> M["确定性给分"]
+    K -- "选择题" --> N["标准答案归一化比较"]
+    K -- "其余题目" --> O["图片分析（可选）+ 课程 RAG + 文本模型"]
+    L --> P["换算逐题分值 / 汇总整份成绩"]
+    M --> P
+    N --> P
+    O --> P
+    P --> Q["MySQL 保存整份记录与逐题索引"]
+    Q --> R["SSE 展示进度与结果 → 教师复核 → CSV 导出"]
+```
+
+### RAG 数据流
+
+知识文档 → PDFBox / Tika 读取 → 文本分块 → BGE-small-zh 本地向量化 → 对应课程向量集合。
+
+批改时使用题干、学生作答、参考答案及图片描述构建检索查询，将命中的评分材料与来源合并到 Prompt，再调用文本模型生成结构化评分结果。Chroma 可选；关闭或初始化失败时使用内存向量库，内存数据会随进程退出而丢失，可从本地知识文档重建。
+
+## 快速开始
+
+### Windows：下载即可体验
+
+1. 打开 [v1.1.0 Release](https://github.com/CyuYing/aes-agent-java/releases/tag/v1.1.0)，下载 `AES-Agent-Windows.zip`，解压到可写目录。
+2. 运行 `doctor.cmd` 检查环境，再运行 `start.cmd`。按照启动提示配置模型 API Key。
+3. 浏览器访问 `http://127.0.0.1:8080`。便携版 MySQL 默认使用本机 `3307` 端口。
+4. 使用包内示例或仓库中的 `专业课程作业批改案例/` 体验预检与批改。结束后运行 `stop.cmd`。
+
+不配置模型 Key 时仍可使用本地文档解析、确定性答案判定等功能；模型评分与图片分析需配置对应服务。便携版无需在目标电脑单独安装 JDK、Maven、MySQL、Python、Node.js 或 Chroma。
+
+### Docker：准备服务器部署
+
+安装 Docker 与 Compose 后：
+
+```bash
+git clone https://github.com/CyuYing/aes-agent-java.git
+cd aes-agent-java
+# Linux / macOS
+bash deploy.sh
+```
+
+Windows 使用 `deploy.cmd`。脚本会准备 `.env`、生成缺失密码并启动应用、MySQL、Chroma。配置模型时在本机 `.env` 中设置 `GRADING_API_KEY`、`GRADING_BASE_URL`、`GRADING_MODEL`；图片评估另设 `VISION_ENABLED` 与 `VISION_*`。
+
+默认监听 `127.0.0.1:8080`，Docker 版默认启用教师认证。服务器访问通过 HTTPS 反向代理提供，保留教师认证；MySQL 和 Chroma 不需要开放公网端口。
+
+### 源码开发与测试
+
+需要 JDK 17+、Maven 3.8+ 和 MySQL 8。先复制配置模板，配置正式记录库、独立 SQL 沙箱的账号和模型环境变量：
+
+```powershell
+Copy-Item src/main/resources/application-example.properties src/main/resources/application.properties
+mvn test
+mvn spring-boot:run
+```
+
+健康检查：`GET http://127.0.0.1:8080/api/health`。外部 MySQL 集成测试需要单独的测试环境变量；未配置时相关测试会跳过。完整配置、打包和排错见下方手册。
+
+## 代码导航
+
+```text
+aes-agent-java/
+├── src/main/java/com/aes/
+│   ├── config/                     # 模型、向量库与教师认证
+│   ├── controller/                 # REST / SSE 与异常处理
+│   ├── model/Dto.java              # 请求、题目、评分与预检结构
+│   └── service/
+│       ├── AssignmentDocumentService.java   # 学生信息与作业结构
+│       ├── AiQuestionRecognitionService.java # 可选 AI 边界复核
+│       ├── AnswerKeyService.java            # 答案库与分值校验
+│       ├── BatchGradingService.java         # 批量匹配与评分编排
+│       ├── HomeworkService.java             # Java / 混合题型评分
+│       ├── DatabaseHomeworkService.java     # SQL 单份评分
+│       ├── DatabaseExecutionService.java    # MySQL 沙箱执行
+│       ├── ChoiceGradingService.java        # 确定性答案比较
+│       ├── ImageDescriptionService.java     # 视觉证据
+│       ├── KnowledgeService.java            # Java RAG
+│       ├── DatabaseKnowledgeService.java    # 数据库 RAG
+│       └── GradingRecordService.java        # 记录、查询、复核、导出
+├── src/main/resources/             # 配置示例与浏览器前端
+├── src/test/                       # 解析、答案库、权限、存储等测试
+├── data/                           # 分课程知识库、答案库、旧记录备份
+├── 专业课程作业批改案例/           # Java / 数据库参考答案与学生作业
+├── packaging/                      # Windows 便携包构建与启动脚本
+├── deploy/                         # 容器入口与 MySQL 初始化
+└── compose.yaml                    # 应用 / MySQL / Chroma 编排
+```
+
+## 使用边界与数据备份
+
+- AI 评分用于辅助教学，最终结果由教师复核；模型失败或解析失败应检查逐题评估状态。
+- 正式历史保存在 MySQL。旧 JSON 记录可在启动时迁移，原文件保留作备份。
+- 便携版迁移前先运行 `stop.cmd`，完整保留 `data/mysql/data/` 和 `data/mysql/credentials.properties`；Docker 部署需备份 MySQL 数据卷及挂载的 `data/`。
+- API Key 使用环境变量或未提交的本机配置；不要放入仓库、截图或便携分发包。
+
+## 完整使用与部署手册
+
+<details>
+<summary><strong>展开：操作步骤、模型配置、打包部署、API、知识库与常见问题</strong></summary>
 
 ## 三、使用说明
 
@@ -99,6 +248,8 @@ Java作业评分标准_构造方法重载_Java17.txt
 
 ### 3.3 答案库批量批改（推荐）
 
+数据库课程的批量批改使用参考答案匹配、图片分析与学科 RAG 评分；当前不接入 SQL 沙箱。需要真实 SQL 执行证据时，请使用数据库单份批改入口。
+
 项目已内置 `专业课程作业批改案例/`：Java 与数据库各包含一份参考答案和三份学生作业。
 
 1. 打开「答案库批量批改」，选择已有答案库；也可上传文件名包含“参考答案”的 DOCX 自动建库。
@@ -113,7 +264,7 @@ Java作业评分标准_构造方法重载_Java17.txt
 
 ### 3.4 Java 作业文档批改
 
-适用于批量批改学生提交的 Word 作业文档，可混合包含编程题、选择题、主观题和图片作答题。
+适用于逐份批改学生提交的 Word 作业文档，可混合包含编程题、选择题、主观题和图片作答题。
 
 #### 操作步骤
 
@@ -142,7 +293,7 @@ Java作业评分标准_构造方法重载_Java17.txt
 
 ### 3.5 数据库作业文档批改
 
-适用于批量批改数据库 SQL 作业文档。文档建议包含题目要求、初始化 SQL 和学生 SQL。
+适用于逐份批改数据库 SQL 作业文档。文档建议包含题目要求、初始化 SQL 和学生 SQL。
 
 #### 操作步骤
 
@@ -162,7 +313,7 @@ Java作业评分标准_构造方法重载_Java17.txt
 
 顶部显示作业总分卡片，包含文件名称和总分：
 
-下图为当前实际运行的数据库作业批改工作台。上传并开始批改后，总分汇总、逐题详情、SQL 执行证据和 RAG 来源会在同一工作台下方展开。
+上传并开始批改后，总分汇总、逐题详情、SQL 执行证据（数据库单份模式）和 RAG 来源会在同一工作台下方展开。
 
 #### 逐题详情
 
@@ -338,6 +489,12 @@ cd aes-agent-java
 
 ### 4.8 配置修改
 
+先复制配置模板，再编辑本机配置（不要提交真实密钥）：
+
+```powershell
+Copy-Item src/main/resources/application-example.properties src/main/resources/application.properties
+```
+
 编辑 `src/main/resources/application.properties`：
 
 ```properties
@@ -450,12 +607,12 @@ java -jar target/aes-agent-1.1.0.jar
 
 ```bash
 # 检查服务是否运行
-curl http://localhost:8080/api/knowledge/stats
+curl http://localhost:8080/api/health
 ```
 
-正常应返回：
+健康检查应返回：
 ```json
-{"chunkCount":0,"fileCount":0,"files":[],"metadata":[]}
+{"status":"UP","service":"aes-agent"}
 ```
 
 **首次启动注意：** BGE-small-zh 模型已包含在应用依赖中，不会在目标电脑再次下载；首次建立知识库索引可能需要几十秒。看到 `Tomcat started on port 8080` 即表示启动成功。
@@ -666,95 +823,12 @@ kill -9 <PID>
 
 ---
 
-## 八、架构流程
 
-```
-用户上传 Word 作业文档
-    │
-    ▼
-AnswerKeyService / BatchGradingService
-    │  ├─ 从参考答案提取题号、答案、评分细则和逐题分值
-    │  ├─ 分值缺失时补齐；保存/批改前严格校验合计 100
-    │  └─ 多份作业按明确题号优先、题干相似度兜底完成匹配
-    │
-    ▼
-DocumentParserService / DatabaseDocumentParserService
-    │  ├─ Apache POI 按段落/表格读取题号、作答及 DrawingML/VML 图片
-    │  ├─ 可选 AI 只复核顶层题目起始行；本地校验后采用或安全回退
-    │  ├─ Java：逐题预览并由教师确认题型、标准答案、提示词、参考图
-    │  └─ 数据库：切分题目、初始化 SQL、学生 SQL
-    │
-    ▼
-HomeworkService / DatabaseHomeworkService
-    │  ├─ 对每道题：
-    │  │   ├─ 选择题：ChoiceGradingService 直接对比答案
-    │  │   ├─ 图片题：图片转文字 + 参考图/学生图多模态匹配
-    │  │   ├─ 其他 Java 题：检索知识库，合并逐题提示词与评分证据
-    │  │   ├─ 数据库：先在隔离 MySQL 8 沙箱执行 SQL，收集执行证据
-    │  │   ├─ 检索对应学科知识库，构建 Prompt
-    │  │   └─ OpenAI 兼容模型 API → JSON 结构化评分结果
-    │  └─ 汇总所有题目得分 → HomeworkResult / DatabaseHomeworkResult
-    │
-    ▼
-GradingRecordService 事务写入 MySQL（整份记录 + 逐题索引）
-    │  ├─ 旧 JSON 自动迁移并保留备份
-    │  ├─ 学生/班级/课程/时间/分数/审核状态组合查询
-    │  └─ 题号 + 题目/答案/评语全文匹配 → 教师复核 → CSV 导出
-    │
-    ▼
-前端展示：总分卡片 + 逐题评分方式 + 图片证据 + SQL 执行证据 + RAG 来源 + 历史复核
-```
+</details>
 
----
+## 学习与文档参考
 
-## 九、项目目录树
+- [RAG 与 Agent 项目实战教程（Bilibili）](https://www.bilibili.com/video/BV1yjz5BLEoY/)：学习参考，视频内容不是本仓库的实际演示。
+- [AI 超级智能体项目介绍（飞书）](https://yuyuanweb.feishu.cn/wiki/D4VSwmWJviWiCekA78ocIZM5nz6)：参考项目介绍、功能梳理、技术选型与分层架构的组织方式。
 
-```
-aes-agent-java/
-├── pom.xml                                    # Maven 项目配置
-├── README.md
-├── data/
-│   ├── java_knowledge_base/                   # Java 知识库文档（评分标准 / 参考范例）
-│   ├── database_knowledge_base/               # 数据库知识库文档（评分标准 / 参考范例）
-│   ├── answer_keys/                           # 结构化答案库 JSON 与参考答案源文件
-│   └── grading_records/                       # 旧 JSON 迁移/备份目录（正式数据在 MySQL）
-├── 专业课程作业批改案例/                      # Java/数据库各 1 份答案 + 3 份作业
-└── src/
-    └── main/
-        ├── java/com/aes/
-        │   ├── AesAgentApplication.java       # Spring Boot 入口
-        │   ├── config/
-        │   │   └── AesConfig.java             # Bean 配置（LLM / Embedding / 向量库）
-        │   ├── controller/
-        │   │   └── AesController.java         # REST API（Java/数据库作业批改 + 知识库）
-        │   ├── model/
-        │   │   └── Dto.java                   # 所有 DTO / Record
-        │   └── service/
-        │       ├── KnowledgeService.java      # Java 知识库管理（加载/分块/向量化/检索）
-        │       ├── DatabaseKnowledgeService.java
-        │       ├── DocumentParserService.java
-        │       ├── DatabaseDocumentParserService.java
-        │       ├── DatabaseExecutionService.java
-        │       ├── ChoiceGradingService.java   # 选择题确定性答案对比
-        │       ├── ImageDescriptionService.java # 图片转写与多模态匹配
-        │       ├── HomeworkService.java
-        │       ├── DatabaseHomeworkService.java
-        │       └── GradingRecordService.java   # MySQL 整份/逐题持久化、精细查询、复核与导出
-        └── resources/
-            ├── application-example.properties  # 应用配置模板
-            └── static/
-                └── index.html                  # 前端 UI（Java/数据库作业批改）
-```
-
----
-
-## 十、注意事项
-
-- BGE-small-zh 模型、Markdown 前端组件和 Java 依赖均随便携包提供；AI 文本/图片批改仍需访问所配置的在线模型服务
-- Java 知识库位于 `data/java_knowledge_base/`，数据库知识库位于 `data/database_knowledge_base/`，放入评分标准文档后需分别点击同步
-- Java 作业批改基于 LLM 静态分析；数据库作业会先在权限隔离的 MySQL 8 沙箱真实执行 SQL，再结合执行证据与 RAG 上下文评分
-- 选择题和完全一致的参考答案可确定性判定；图片批改需配置支持图片输入的 OpenAI 兼容视觉模型
-- 批改历史全部使用 MySQL；便携版自带 MySQL Server。移动或备份前应先运行 `stop.cmd`，再完整复制整个便携文件夹，尤其是 `data/mysql/data/` 与 `data/mysql/credentials.properties`
-- API Key 只通过环境变量或本机未提交的配置文件提供；如果密钥曾出现在文档、聊天或版本历史中，应立即在服务商控制台撤销并重建
-- `.env` 和本地密钥配置已加入忽略规则；不要把任何真实密钥复制进公开分发包
-- AI 评分结果仅供教学参考，不作为正式考试成绩
+本仓库的功能与技术描述以现有源码为准。
